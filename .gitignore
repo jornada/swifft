@@ -1,4 +1,5 @@
 LM_LICENSE_FILE
-fft
+test_fft
+test_wavelets
 wavelets
 *.o
