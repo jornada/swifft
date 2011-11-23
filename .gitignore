@@ -3,3 +3,4 @@ test_fft
 test_wavelets
 wavelets
 *.o
+*~

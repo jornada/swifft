@@ -4,235 +4,136 @@
 #include <string.h>
 #include <math.h>
 #include <complex.h>
-#include "fft.h"
-
-void rec_fft2(double complex *in, double complex *out, long long int sz, long long int s);
-void rec_fft3(double complex *in, double complex *out, long long int sz);
+//#include <rfftw.h>
+//#include <fftw.h>
+#include "wavelets.h"
+#include "utils.h"
 
 double complex *scratch;
+//note: 1st half of the coefficients: real!=0 , 2nd half: imaginary=0
+double *h, *g;
+double complex *H, *G;
+int h_sz, g_sz;
+long long int faft_step;
 double complex *w;
-long long int fft_step;
 
-void prepare_fft(long long int sz){
-	int i;
+#define max(a,b) a>b?a:b
+
+//waffle?
+//civet? - concrete implementation of v... ex
+
+//FFT specialized for sparse data
+void sparse_FFT(double *in, int sz_in, double complex *out, long long int sz_out){
+	int i,j;
+	for (i=0; i<sz_out; i++){
+		out[i] = (double complex) 0;
+		for (j=0; j<sz_in; j++){
+			out[i] += w[i*j]*in[j];
+		}
+	}
+}
+
+void prepare_faft(long long int sz, double *h_, int h_sz_, double *g_, int g_sz_){
+	//rfftw_plan p;
+	//fftw_plan p;
 	double alpha;
+	int i;
 
 	scratch = (double complex*) malloc(sizeof(double complex)*sz);
+
 	w = (double complex*) malloc(sizeof(double complex)*sz);
-	alpha = 2.0*M_PI/(double)sz; 
+	alpha = 2.0*M_PI/(double)sz;
 
 	for (i=0; i<sz; i++){
 		w[i] = cos(alpha*i) - I*sin(alpha*i);
 	}
-	fft_step=1;
+
+	H = (double complex*) malloc(sizeof(double complex)*sz);
+	G = (double complex*) malloc(sizeof(double complex)*sz);
+
+	h = h_;	h_sz = h_sz_;
+	g = g_;	g_sz = g_sz_;
+
+	sparse_FFT(h, h_sz, H, sz);
+	sparse_FFT(g, g_sz, G, sz);
+	
+	/*	
+	p = rfftw_create_plan(sz, FFTW_FORWARD, FFTW_ESTIMATE);
+	rfftw_one(p, (fftw_real*) h, (fftw_real*) H);
+	rfftw_one(p, (fftw_real*) g, (fftw_real*) G);
+	fftw_destroy_plan(p);
+	*/
+
+	/*
+	p = fftw_plan_dft_r2c_1d(sz, h, (fftw_complex*) H, FFTW_ESTIMATE);
+	fftw_execute(p);
+	fftw_destroy_plan(p);
+
+	p = fftw_plan_dft_r2c_1d(sz, g, (fftw_complex*) G, FFTW_ESTIMATE);
+	fftw_execute(p);
+	fftw_destroy_plan(p);
+	*/
+
+	// note: H and G are organized as follows:
+	// [r0, r1, r2, ..., rn/2, i(n+1)/2-1, ..., i2, i1]
+	print_vec(h, sz);
+	print_cvec(H, sz);
+	print_vec(g, sz);
+	print_cvec(G, sz);
+
+	faft_step=1;
 }
 
-void free_fft(){
+void free_faft(){
 	free(scratch);
 	free(w);
+	free(H);
+	free(G);
 }
 
-void fft(double complex *in, double complex *out, long long int sz){
-	long long int i,j, sz2;
-	double complex aa, bb;
-
-	//printf("Caling fft, sz=%lld, fftw_step=%lld\n", sz, fft_step);
-	if (sz==1){
-		*out = (double complex) *in;
-	} else {
-		sz2 = sz>>1;
-		//reorder
-		memcpy(scratch, in, sz*sizeof(double complex));
-		for (i=0; i<sz2; i++) {
-			in[i] = scratch[2*i];
-			in[i+sz2] = scratch[2*i+1];
-		}
-	
-		fft_step = fft_step<<1;
-		fft(in, out, sz2);
-		fft(in+sz2, out+sz2, sz2);
-		fft_step = fft_step>>1;
-
-		//precalculate 0-element, since w[0]=1
-		aa = out[0];
-		bb = out[sz2];
-		out[0] = aa + bb;
-		out[sz2] = aa - bb;
-		j=0;
-		for (i=1; i<sz2; i++){
-			j += fft_step;
-			aa = out[i];
-			bb = w[j]*out[i+sz2];
-			//bb = (M_PI+M_PI*I)*out[i+sz2];
-			out[i] = aa + bb;
-			out[i+sz2] = aa - bb;
-		}
-		
-	}
-}
-
-void fft2(double complex *in, double complex *out, long long int sz){
-	//long long int i,j, sz2;
-
-	rec_fft2(in, out, sz, 1);
-}
-
-void rec_fft2(double complex *in, double complex *out, long long int sz, long long int s){
-	long long int i,j, sz2;
-	double complex aa, bb;
-
-	//printf("Caling fft, sz=%lld, fftw_step=%lld\n", sz, fft_step);
-	if (sz==1){
-		*out = (double complex) *in;
-	} else {
-		sz2 = sz>>1;
-	
-		fft_step = fft_step<<1;
-		rec_fft2(in, out, sz2, 2*s);
-		rec_fft2(in+s, out+sz2, sz2, 2*s);
-		fft_step = fft_step>>1;
-
-		//precalculate 0-element, since w[0]=1
-		aa = out[0];
-		bb = out[sz2];
-		out[0] = aa + bb;
-		out[sz2] = aa - bb;
-		j=0;
-		for (i=1; i<sz2; i++){
-			j += fft_step;
-			aa = out[i];
-			bb = w[j]*out[i+sz2];
-			//bb = (M_PI+M_PI*I)*out[i+sz2];
-			out[i] = aa + bb;
-			out[i+sz2] = aa - bb;
-		}
-		
-	}
-}
-
-#define SWAP(a,b) tmp=b; b=a; a=tmp;
-
-//source: http://ieeexplore.ieee.org/stamp/stamp.jsp?tp=&arnumber=115695
-void frbr(double complex *x, long long int m) {
-	long long int br[256];
-	long long int m2,c,odd,offset,b_size,i,j,k;
+void faft(double complex *in, double complex *out, long long int sz){
+	long long int i,j,j2, sz2;
 	double complex tmp;
 
-	m2=m>>1; c=1<<m2;  
-	odd=0; if(m!=m2<<1) odd=1; 
-	offset=1<<(m-1); b_size=2;
-	br[0]=0;  br[1]=offset; 
-	SWAP(x[1], x[offset]); 
-	if(odd) SWAP(x[1+c], x[offset+c]); 
-
-	while(b_size<c){
-		offset>>=1;
-		for(i=b_size; i<b_size<<1; i++){
-			br[i]=k=br[i-b_size]+offset; 
-			SWAP(x[i], x[k]);
-			if(odd) SWAP(x[i+c], x[k+c]); 
-			for(j=1; j<i; j++){
-				SWAP(x[i+br[j]+c], x[k+j+c]);
-			}
-		}
-		b_size<<=1;
-	}
-	return;
-}
-
-//http://www.katjaas.nl/bitreversal/bitreversal.html
-void bitrev(double complex *real, unsigned int logN)
-{	
-	unsigned int forward, rev, toggle;
-	unsigned int nodd, noddrev;  // to hold bitwise negated or odd values
-	unsigned int N, halfn, quartn, nmin1;
-	double complex temp;
-	
-	N = 1<<logN;
-	halfn = N>>1;    // frequently used 'constants'	
-	quartn = N>>2;
-	nmin1 = N-1;
-
-	forward = halfn; // variable initialisations
-	rev = 1;
-	
-	while(forward)	// start of bitreversed permutation loop, N/4 iterations
-	{
-	 
-	 // adaptation of the traditional bitreverse update method
-
-	 forward -= 2;									
-	 toggle = quartn;  // reset the toggle in every iteration
-	 rev ^= toggle;	   // toggle one bit in reversed unconditionally
-	 while(rev&toggle) // check if more bits in reversed must be toggled
-	 {
-		 toggle >>= 1;
-		 rev ^= toggle;							
-	 }
-	
-		if(forward<rev)  // swap even and ~even conditionally
-		{
-
-			temp = real[forward];				
-			real[forward] = real[rev];
-			real[rev] = temp;
-
-			nodd = nmin1 ^ forward;	// compute the bitwise negations
-			noddrev = nmin1 ^ rev;		
-			
-			temp = real[nodd];      // swap bitwise-negated pairs
-			real[nodd] = real[noddrev];
-			real[noddrev] = temp;
-		}
-		
-		nodd = forward ^ 1;  // compute the odd values from the even
-		noddrev = rev ^ halfn;
-		
-		temp = real[nodd];  // swap odd unconditionally
-		real[nodd] = real[noddrev];
-		real[noddrev] = temp;
-	}	
-	// end of the bitreverse permutation loop
-}
-// end of bitrev function
-
-
-
-void fft3(double complex *in, double complex *out, long long int sz){
-
-	bitrev(in, round(log2(sz)));
-	rec_fft3(in, out, sz);
-}
-
-void rec_fft3(double complex *in, double complex *out, long long int sz){
-	long long int i,j, sz2;
-	double complex aa, bb;
-
+	//if (sz==8) printf("!\n");
 	//printf("Caling fft, sz=%lld, fftw_step=%lld\n", sz, fft_step);
 	if (sz==1){
 		*out = (double complex) *in;
 	} else {
 		sz2 = sz>>1;
+		//wavelet transform
+		memcpy(scratch, in, sz*sizeof(double complex));
+		//XXX I think this is right, but double check meh!
+		//if (sz==8) print_cvec(in, sz);
+		//if (sz==8) {print_vec(h, h_sz); print_vec(g, g_sz);}
+		for (i=0; i<sz2; i++) {
+			in[i]=0;
+			for (j=0; j<h_sz; j++){
+				j2 = (2*i + j)%sz;
+				in[i] += h[j]*scratch[j2];
+			}
+			in[i+sz2]=0;
+			for (j=0; j<g_sz; j++){
+				j2 = (2*i + j)%sz;
+				in[i+sz2] += g[j]*scratch[j2];
+			}
+		}
+		//if (sz==8) print_cvec(in, sz);
 	
-		fft_step = fft_step<<1;
-		rec_fft3(in, out, sz2);
-		rec_fft3(in+sz2, out+sz2, sz2);
-		fft_step = fft_step>>1;
+		faft_step = faft_step<<1;
+		faft(in, out, sz2);
+		faft(in+sz2, out+sz2, sz2);
+		faft_step = faft_step>>1;
 
-		//precalculate 0-element, since w[0]=1
-		aa = out[0];
-		bb = out[sz2];
-		out[0] = aa + bb;
-		out[sz2] = aa - bb;
-		j=0;
-		for (i=1; i<sz2; i++){
-			j += fft_step;
-			aa = out[i];
-			bb = w[j]*out[i+sz2];
-			//bb = (M_PI+M_PI*I)*out[i+sz2];
-			out[i] = aa + bb;
-			out[i+sz2] = aa - bb;
+		//FIXME (i think the problem is here...)
+		j = -faft_step;
+		for (i=0; i<sz2; i++){
+			j += faft_step;
+			tmp = H[j]*out[i] + G[j]*out[i+sz2];
+			out[i+sz2] = H[j+sz2]*out[i] + G[j+sz2]*out[i+sz2];
+			out[i] = tmp;
 		}
 		
 	}
 }
+

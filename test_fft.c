@@ -12,7 +12,7 @@
 #include "fft.h"
 #include "utils.h"
 
-#define n 20
+#define n 3
 #define REP 1
 
 int main(int argc, char **argv){
