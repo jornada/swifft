@@ -39,6 +39,8 @@ int main(int argc, char **argv){
 	h = (double*) calloc(N, sizeof(double));
 	g = (double*) calloc(N, sizeof(double));
 	//h[0]=1; g[1]=1;
+	//h[0]=sqrt(2.)*0.5; h[1]=h[0];
+	//g[0]=h[0];g[1]=-g[0];
 	//prepare_faft(N, h, 2, g, 2);
 
 	h[0]=-0.12940952255092145;h[1]=-0.22414386804185735;h[2]=0.83651630373746899;h[3]=-0.48296291314469025;
