@@ -38,12 +38,17 @@ int main(int argc, char **argv){
 	//use lazy wavelet filter;
 	h = (double*) calloc(N, sizeof(double));
 	g = (double*) calloc(N, sizeof(double));
-	h[0]=1; g[1]=1;
+	//h[0]=1; g[1]=1;
+	//prepare_faft(N, h, 2, g, 2);
+
+	h[0]=-0.12940952255092145;h[1]=-0.22414386804185735;h[2]=0.83651630373746899;h[3]=-0.48296291314469025;
+	g[0]=0.48296291314469025;g[1]=0.83651630373746899;g[2]=0.22414386804185735;g[3]=-0.12940952255092145;
+	prepare_faft(N, h, 4, g, 4);
 
 	//printf("Input vector:\n");
 	//print_cvec(vec_in, N);
 
-	prepare_faft(N, h, 2, g, 2);
+
 
 	t0 = time(NULL); c0 = clock();
 	for (i=0; i<REP; i++)

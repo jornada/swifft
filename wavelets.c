@@ -19,6 +19,7 @@ double complex *w;
 
 #define max(a,b) a>b?a:b
 
+//craft
 //waffle?
 //civet? - concrete implementation of v... ex
 
@@ -76,9 +77,13 @@ void prepare_faft(long long int sz, double *h_, int h_sz_, double *g_, int g_sz_
 
 	// note: H and G are organized as follows:
 	// [r0, r1, r2, ..., rn/2, i(n+1)/2-1, ..., i2, i1]
+	printf("h ");
 	print_vec(h, sz);
+	printf("H ");
 	print_cvec(H, sz);
+	printf("g ");
 	print_vec(g, sz);
+	printf("G ");
 	print_cvec(G, sz);
 
 	faft_step=1;
@@ -93,19 +98,15 @@ void free_faft(){
 
 void faft(double complex *in, double complex *out, long long int sz){
 	long long int i,j,j2, sz2;
-	double complex tmp;
+	double complex tmp, aa,bb;
 
-	//if (sz==8) printf("!\n");
-	//printf("Caling fft, sz=%lld, fftw_step=%lld\n", sz, fft_step);
+	//printf("Caling faft, sz=%lld, faftw_step=%lld\n", sz, faft_step);
 	if (sz==1){
 		*out = (double complex) *in;
 	} else {
 		sz2 = sz>>1;
 		//wavelet transform
 		memcpy(scratch, in, sz*sizeof(double complex));
-		//XXX I think this is right, but double check meh!
-		//if (sz==8) print_cvec(in, sz);
-		//if (sz==8) {print_vec(h, h_sz); print_vec(g, g_sz);}
 		for (i=0; i<sz2; i++) {
 			in[i]=0;
 			for (j=0; j<h_sz; j++){
@@ -118,7 +119,6 @@ void faft(double complex *in, double complex *out, long long int sz){
 				in[i+sz2] += g[j]*scratch[j2];
 			}
 		}
-		//if (sz==8) print_cvec(in, sz);
 	
 		faft_step = faft_step<<1;
 		faft(in, out, sz2);
@@ -129,11 +129,34 @@ void faft(double complex *in, double complex *out, long long int sz){
 		j = -faft_step;
 		for (i=0; i<sz2; i++){
 			j += faft_step;
+			/*
+			aa = out[i];
+			bb = w[j]*out[i+sz2];
+			//bb = (M_PI+M_PI*I)*out[i+sz2];
+			out[i] = aa + bb;
+			out[i+sz2] = aa - bb;
+			*/
 			tmp = H[j]*out[i] + G[j]*out[i+sz2];
-			out[i+sz2] = H[j+sz2]*out[i] + G[j+sz2]*out[i+sz2];
+			//out[i+sz2] = H[j+sz2]*out[i] + G[j+sz2]*out[i+sz2]; //orig
+			out[i+sz2] = H[j+sz2]*out[i] - G[j]*out[i+sz2]; //works work lazy wavelet!!
+			//out[i+sz2] = H[sz2+j]*out[i] - conj(G[j])*out[i+sz2]; //??
 			out[i] = tmp;
+			/*
+			if (sz==8) {
+				printf("i=%lld, j=%lld\n",i,j);
+				printf("w=(%f,%f), H=(%f,%f), G=(%f,%f)\n",
+					(float) creal(w[j]), (float) cimag(w[j]),
+					(float) creal(H[j]), (float) cimag(H[j]),
+					(float) creal(G[j]), (float) cimag(G[j]) );
+				printf("i=%lld, j+sz2=%lld\n",i,j+sz2);
+				printf("w=(%f,%f), H=(%f,%f), G=(%f,%f)\n",
+					(float) creal(w[j+sz2]), (float) cimag(w[j+sz2]),
+					(float) creal(H[j+sz2]), (float) cimag(H[j+sz2]),
+					(float) creal(G[j+sz2]), (float) cimag(G[j+sz2]) );
+			}
+			*/
+			
 		}
-		
 	}
 }
 
