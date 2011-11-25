@@ -1,8 +1,8 @@
 CC=gcc
-CCFLAGS=-Wall -O0 -g -ggdb
-#CCFLAGS=-Wall -O3 -ffast-math 
-#CCFLAGS=-Wall #-O3 
-LDFLAGS=-lm -lfftw #-lrfftw
+#CCFLAGS=-Wall -O0 -g -ggdb
+CCFLAGS=-Wall -O3 -ffast-math 
+#CCFLAGS=-Wall -O3 
+LDFLAGS=-lm -lrt -lfftw #-lrfftw
 
 #CC=icc
 #CCFLAGS=-Wall -O3 -fast
@@ -26,8 +26,11 @@ fft.o: fft.c
 utils.o: utils.c
 	$(CC) $(CCFLAGS) -c utils.c
 
-test_wavelets: test_wavelets.o wavelets.o utils.o
-	$(CC) -o test_wavelets test_wavelets.o wavelets.o utils.o $(LDFLAGS)
+test_wavelets: test_wavelets.o wavelets.o utils.o fft.o
+	$(CC) -o test_wavelets test_wavelets.o wavelets.o utils.o fft.o $(LDFLAGS)
+
+test_wavelets.o: test_wavelets.c
+	$(CC) $(CCFLAGS) -c test_wavelets.c 
 
 wavelets.o: wavelets.c
 	$(CC) $(CCFLAGS) -c wavelets.c 

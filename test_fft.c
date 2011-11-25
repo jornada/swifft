@@ -7,12 +7,11 @@
 #include <complex.h>
 #include <fftw.h>
 
-#include <sys/types.h>
 #include <time.h>
 #include "fft.h"
 #include "utils.h"
 
-#define n 3
+#define n 23
 #define REP 1
 
 int main(int argc, char **argv){
@@ -20,9 +19,8 @@ int main(int argc, char **argv){
 	double complex *vec_in;
 	double complex *vec_out;
 	fftw_plan p;
-
-	time_t  t0, t1; /* time_t is defined on <time.h> and <sys/types.h> as long */
-	clock_t c0, c1; /* clock_t is defined on <time.h> and <sys/types.h> as int */
+	struct timespec ts0, ts1;
+	clock_t c0, c1;
 
 	N = pow(2, n);
 	vec_in  = (double complex*) malloc(sizeof(double complex)*N);
@@ -40,11 +38,11 @@ int main(int argc, char **argv){
 
 	prepare_fft(N);	
 
-	t0 = time(NULL); c0 = clock();
+	clock_gettime(CLOCK_REALTIME, &ts0); c0 = clock();
 	for (i=0; i<REP; i++)
 		fft(vec_in, vec_out, N);
-	t1 = time(NULL); c1 = clock();
-	printf("\tTime (WALL): %ld\tTime (clock): %f\n", (long int) (t1-t0), (float)(c1-c0)/CLOCKS_PER_SEC);
+	clock_gettime(CLOCK_REALTIME, &ts1); c1 = clock();
+	print_times(ts0, ts1, c0, c1);
 	
 	free_fft();	
 
@@ -65,11 +63,11 @@ int main(int argc, char **argv){
 
 	prepare_fft(N);	
 
-	t0 = time(NULL); c0 = clock();
+	clock_gettime(CLOCK_REALTIME, &ts0); c0 = clock();
 	for (i=0; i<REP; i++)
 		fft2(vec_in, vec_out, N);
-	t1 = time(NULL); c1 = clock();
-	printf("\tTime (WALL): %ld\tTime (clock): %f\n", (long int) (t1-t0), (float)(c1-c0)/CLOCKS_PER_SEC);
+	clock_gettime(CLOCK_REALTIME, &ts1); c1 = clock();
+	print_times(ts0, ts1, c0, c1);
 	
 	free_fft();	
 
@@ -90,11 +88,11 @@ int main(int argc, char **argv){
 
 	prepare_fft(N);	
 
-	t0 = time(NULL); c0 = clock();
+	clock_gettime(CLOCK_REALTIME, &ts0); c0 = clock();
 	for (i=0; i<REP; i++)
 		fft3(vec_in, vec_out, N);
-	t1 = time(NULL); c1 = clock();
-	printf("\tTime (WALL): %ld\tTime (clock): %f\n", (long int) (t1-t0), (float)(c1-c0)/CLOCKS_PER_SEC);
+	clock_gettime(CLOCK_REALTIME, &ts1); c1 = clock();
+	print_times(ts0, ts1, c0, c1);
 	
 	free_fft();	
 
@@ -117,11 +115,11 @@ int main(int argc, char **argv){
 
 	p = fftw_create_plan(N, FFTW_FORWARD, FFTW_ESTIMATE);
 
-	t0 = time(NULL); c0 = clock();
+	clock_gettime(CLOCK_REALTIME, &ts0); c0 = clock();
 	for (i=0; i<REP; i++)
 	fftw_one(p, (fftw_complex*) vec_in, (fftw_complex*) vec_out);
-	t1 = time(NULL); c1 = clock();
-	printf("\tTime (WALL): %ld\tTime (clock): %f\n", (long int) (t1-t0), (float)(c1-c0)/(float)CLOCKS_PER_SEC);
+	clock_gettime(CLOCK_REALTIME, &ts1); c1 = clock();
+	print_times(ts0, ts1, c0, c1);
 
 	fftw_destroy_plan(p);
 

@@ -37,38 +37,40 @@ void fft(double complex *in, double complex *out, long long int sz){
 	double complex aa, bb;
 
 	//printf("Caling fft, sz=%lld, fftw_step=%lld\n", sz, fft_step);
-	if (sz==1){
-		*out = (double complex) *in;
-	} else {
-		sz2 = sz>>1;
-		//reorder
-		memcpy(scratch, in, sz*sizeof(double complex));
-		for (i=0; i<sz2; i++) {
-			in[i] = scratch[2*i];
-			in[i+sz2] = scratch[2*i+1];
-		}
-	
+
+	sz2 = sz>>1;
+	//reorder
+	memcpy(scratch, in, sz*sizeof(double complex));
+	for (i=0; i<sz2; i++) {
+		in[i] = scratch[2*i];
+		in[i+sz2] = scratch[2*i+1];
+	}
+
+	if (sz>2){
 		fft_step = fft_step<<1;
 		fft(in, out, sz2);
 		fft(in+sz2, out+sz2, sz2);
 		fft_step = fft_step>>1;
-
-		//precalculate 0-element, since w[0]=1
-		aa = out[0];
-		bb = out[sz2];
-		out[0] = aa + bb;
-		out[sz2] = aa - bb;
-		j=0;
-		for (i=1; i<sz2; i++){
-			j += fft_step;
-			aa = out[i];
-			bb = w[j]*out[i+sz2];
-			//bb = (M_PI+M_PI*I)*out[i+sz2];
-			out[i] = aa + bb;
-			out[i+sz2] = aa - bb;
-		}
-		
+	} else {
+		out[0] = in[0];
+		out[1] = in[1];
 	}
+
+	//precalculate 0-element, since w[0]=1
+	aa = out[0];
+	bb = out[sz2];
+	out[0] = aa + bb;
+	out[sz2] = aa - bb;
+	j=0;
+	for (i=1; i<sz2; i++){
+		j += fft_step;
+		aa = out[i];
+		bb = w[j]*out[i+sz2];
+		//bb = (M_PI+M_PI*I)*out[i+sz2];
+		out[i] = aa + bb;
+		out[i+sz2] = aa - bb;
+	}
+		
 }
 
 void fft2(double complex *in, double complex *out, long long int sz){
@@ -82,31 +84,31 @@ void rec_fft2(double complex *in, double complex *out, long long int sz, long lo
 	double complex aa, bb;
 
 	//printf("Caling fft, sz=%lld, fftw_step=%lld\n", sz, fft_step);
-	if (sz==1){
-		*out = (double complex) *in;
-	} else {
-		sz2 = sz>>1;
-	
+	sz2 = sz>>1;
+
+	if (sz>2){
 		fft_step = fft_step<<1;
 		rec_fft2(in, out, sz2, 2*s);
 		rec_fft2(in+s, out+sz2, sz2, 2*s);
 		fft_step = fft_step>>1;
+	} else {
+		out[0] = in[0];
+		out[1] = in[1];
+	}
 
-		//precalculate 0-element, since w[0]=1
-		aa = out[0];
-		bb = out[sz2];
-		out[0] = aa + bb;
-		out[sz2] = aa - bb;
-		j=0;
-		for (i=1; i<sz2; i++){
-			j += fft_step;
-			aa = out[i];
-			bb = w[j]*out[i+sz2];
-			//bb = (M_PI+M_PI*I)*out[i+sz2];
-			out[i] = aa + bb;
-			out[i+sz2] = aa - bb;
-		}
-		
+	//precalculate 0-element, since w[0]=1
+	aa = out[0];
+	bb = out[sz2];
+	out[0] = aa + bb;
+	out[sz2] = aa - bb;
+	j=0;
+	for (i=1; i<sz2; i++){
+		j += fft_step;
+		aa = out[i];
+		bb = w[j]*out[i+sz2];
+		//bb = (M_PI+M_PI*I)*out[i+sz2];
+		out[i] = aa + bb;
+		out[i+sz2] = aa - bb;
 	}
 }
 
@@ -196,8 +198,6 @@ void bitrev(double complex *real, unsigned int logN)
 }
 // end of bitrev function
 
-
-
 void fft3(double complex *in, double complex *out, long long int sz){
 
 	bitrev(in, round(log2(sz)));
@@ -209,30 +209,31 @@ void rec_fft3(double complex *in, double complex *out, long long int sz){
 	double complex aa, bb;
 
 	//printf("Caling fft, sz=%lld, fftw_step=%lld\n", sz, fft_step);
-	if (sz==1){
-		*out = (double complex) *in;
-	} else {
-		sz2 = sz>>1;
-	
+
+	sz2 = sz>>1;
+
+	if (sz>2) {
 		fft_step = fft_step<<1;
 		rec_fft3(in, out, sz2);
 		rec_fft3(in+sz2, out+sz2, sz2);
 		fft_step = fft_step>>1;
+	} else {
+		out[0] = in[0];
+		out[1] = in[1];
+	}
 
-		//precalculate 0-element, since w[0]=1
-		aa = out[0];
-		bb = out[sz2];
-		out[0] = aa + bb;
-		out[sz2] = aa - bb;
-		j=0;
-		for (i=1; i<sz2; i++){
-			j += fft_step;
-			aa = out[i];
-			bb = w[j]*out[i+sz2];
-			//bb = (M_PI+M_PI*I)*out[i+sz2];
-			out[i] = aa + bb;
-			out[i+sz2] = aa - bb;
-		}
-		
+	//precalculate 0-element, since w[0]=1
+	aa = out[0];
+	bb = out[sz2];
+	out[0] = aa + bb;
+	out[sz2] = aa - bb;
+	j=0;
+	for (i=1; i<sz2; i++){
+		j += fft_step;
+		aa = out[i];
+		bb = w[j]*out[i+sz2];
+		//bb = (M_PI+M_PI*I)*out[i+sz2];
+		out[i] = aa + bb;
+		out[i+sz2] = aa - bb;
 	}
 }
