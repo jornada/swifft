@@ -14,8 +14,8 @@ double complex *scratch2, *buf1, *buf2;
 double *h, *g;
 double complex *H, *G;
 int h_sz, g_sz, max_window;
-long long int sz_full, sz_half; //full (orig.) matrix
-long long int faft_step;
+int sz_full, sz_half; //full (orig.) matrix
+int swifft_step;
 double complex *w2;
 fftw_plan p;
 int p_init;
@@ -23,12 +23,10 @@ int p_init;
 #define SQRT2_2 0.7071067811865475 
 #define max(a,b) (a>b?a:b)
 
-//craft
-//waffle?
-//civet? - concrete implementation of v... ex
+//swifft - swifft Wavelet-based Inexact Fast Fourier Transform
 
-//"naive" FFT specialized for real sparse data -- only takes O(sz_out*sz_in) flops
-void sparse_FFT(double *in, int sz_in, double complex *out, long long int sz_out){
+//"naive" FFT specialized for real sparse data -- takes only O(sz_out*sz_in) flops
+void sparse_FFT(double *in, int sz_in, double complex *out, int sz_out){
 	int i, j, j2, sz2;
 
 	sz2 = sz_out>>1;
@@ -56,7 +54,7 @@ void sparse_FFT(double *in, int sz_in, double complex *out, long long int sz_out
 	}
 }
 
-void prepare_faft(long long int sz, double *h_, int h_sz_, double *g_, int g_sz_){
+void prepare_swifft(int sz, double *h_, int h_sz_, double *g_, int g_sz_){
 	//rfftw_plan p;
 	//fftw_plan p;
 	double alpha;
@@ -96,11 +94,11 @@ void prepare_faft(long long int sz, double *h_, int h_sz_, double *g_, int g_sz_
 	print_cvec(G, sz);
 	*/
 
-	faft_step=1;
+	swifft_step=1;
 	p_init = 0;
 }
 
-void free_faft(){
+void free_swifft(){
 	free(scratch2);
 	free(w2);
 	free(H);
@@ -108,13 +106,137 @@ void free_faft(){
 }
 
 #define SWAP(a,b) TMP=b; b=a; a=TMP;
-void faft(double complex *in, double complex *out, long long int sz){
-	long long int i, i2, j,j2, sz2;
+/*
+void swifft(double complex *in, double complex *out, int sz){
+	int i, i2, j,j2, sz2;
 	double complex tmp;
 	//double complex *TMP;
 
 
-	//printf("Caling faft, sz=%lld, faftw_step=%lld\n", sz, faft_step);
+	//printf("Caling swifft, sz=%lld, swifftw_step=%lld\n", sz, swifft_step);
+	sz2 = sz>>1;
+	//wavelet transform
+
+	*
+	//idea: swap buffer in with last used buffer (buf2)
+	// write result into buf1, pass buf1 as in
+	SWAP(buf1, buf2)
+	for (i=0; i<sz2; i++) {
+		buf1[i]=0;
+		buf1[i+sz2]=0;
+		for (j=0; j<max_window; j++){
+			j2 = (2*i + j)%sz;
+			buf1[i] += h[j]*in[j2];
+			buf1[i+sz2] += g[j]*in[j2];
+		}
+	}/
+	
+	if (swifft_step > 1<<3){
+		*
+		memcpy(scratch2, in, sz*sizeof(double complex));
+		for (i=0; i<sz2; i++) {
+			in[i]=0;
+			in[i+sz2]=0;
+			for (j=0; j<max_window; j++){
+				j2 = (2*i + j)%sz;
+				//in[i] += h[j]*scratch2[j2];
+				//in[i+sz2] += g[j]*scratch2[j2];
+				in[i] += h[j]*scratch2[j2];
+				in[i+sz2] += g[j]*scratch2[j2];
+			}
+		}
+		swifft_step = swifft_step<<1;
+		if (sz>2){
+			swifft(in, out, sz2);
+			swifft(in+sz2, out+sz2, sz2);
+		} else {
+			out[0] = in[0];
+			out[1] = in[1];
+		}
+		swifft_step = swifft_step>>1;
+		j = -swifft_step;
+		for (i=0; i<sz2; i++){
+			j += swifft_step;
+			j2 = j + sz_half;
+			i2 = i + sz2;
+			tmp = H[j]*out[i] + G[j]*out[i2];
+			out[i2] = H[j2]*out[i] + G[j2]*out[i2];
+			out[i] = tmp;
+		}/
+		
+		//stop prunning, do regular FFT!
+		if (!p_init){
+			p = fftw_create_plan(sz, FFTW_FORWARD, FFTW_ESTIMATE);
+			p_init = 1;
+		}
+		fftw_one(p, (fftw_complex*) in, (fftw_complex*) out);
+		//fftw_destroy_plan(p);
+		
+	} else {
+		//some condition
+		if (swifft_step==1){
+		
+		memcpy(scratch2, in, sz*sizeof(double complex));
+		for (i=0; i<sz2; i++) {
+			//in[i]=0;
+			(*
+			in[i+sz2]=0;
+			for (j=0; j<max_window; j++){
+				j2 = (2*i + j)%sz;
+				//j2=0;
+				//in[i] += h[j]*scratch2[j2];
+				in[i+sz2] += g[j]*scratch2[j2];
+			}
+			*)
+			in[i+sz2] = SQRT2_2*( scratch2[2*i] + scratch2[2*i+1] );
+		}
+		
+		for (i=sz2-1; i+1; i--) {
+			in[i+sz2] = SQRT2_2*( in[2*i] + in[2*i+1] );
+		}
+
+		swifft_step = swifft_step<<1;
+		//if (sz>2){
+			swifft(in+sz2, out+sz2, sz2);
+		//} else {
+		//	out[0] = in[0];
+		//	out[1] = in[1];
+		//}
+		swifft_step = swifft_step>>1;
+		j = -swifft_step;
+		for (i=0; i<sz2; i++){
+			j += swifft_step;
+			j2 = j + sz_half;
+			i2 = i + sz2;
+			out[i] = G[j]*out[i2];
+			out[i2] = G[j2]*out[i2];
+		}
+	}
+
+	*
+	//multiply by H and G
+	j = -swifft_step;
+	for (i=0; i<sz2; i++){
+		j += swifft_step;
+		j2 = j + sz_half;
+		i2 = i + sz2;
+		tmp = H[j]*out[i] + G[j]*out[i2];
+		out[i2] = H[j2]*out[i] + G[j2]*out[i2];
+		out[i] = tmp;
+	}
+	*
+}
+*/
+
+
+//This routine takes any input filter
+void swifft_gen(double complex *in, double complex *out, int sz){
+	int i, i2, j,j2, sz2;
+	double complex tmp;
+	//double complex *TMP;
+
+
+	//printf("Caling swifft, sz=%lld, swifftw_step=%lld\n", sz, swifft_step);
 	sz2 = sz>>1;
 	//wavelet transform
 
@@ -132,7 +254,7 @@ void faft(double complex *in, double complex *out, long long int sz){
 		}
 	}*/
 	
-	if (faft_step > 1<<12){
+	if (swifft_step > 1<<3){
 		/*
 		memcpy(scratch2, in, sz*sizeof(double complex));
 		for (i=0; i<sz2; i++) {
@@ -146,18 +268,18 @@ void faft(double complex *in, double complex *out, long long int sz){
 				in[i+sz2] += g[j]*scratch2[j2];
 			}
 		}
-		faft_step = faft_step<<1;
+		swifft_step = swifft_step<<1;
 		if (sz>2){
-			faft(in, out, sz2);
-			faft(in+sz2, out+sz2, sz2);
+			swifft(in, out, sz2);
+			swifft(in+sz2, out+sz2, sz2);
 		} else {
 			out[0] = in[0];
 			out[1] = in[1];
 		}
-		faft_step = faft_step>>1;
-		j = -faft_step;
+		swifft_step = swifft_step>>1;
+		j = -swifft_step;
 		for (i=0; i<sz2; i++){
-			j += faft_step;
+			j += swifft_step;
 			j2 = j + sz_half;
 			i2 = i + sz2;
 			tmp = H[j]*out[i] + G[j]*out[i2];
@@ -174,6 +296,8 @@ void faft(double complex *in, double complex *out, long long int sz){
 		//fftw_destroy_plan(p);
 		
 	} else {
+		//some condition
+		//if (swifft_step==1){
 		/*
 		memcpy(scratch2, in, sz*sizeof(double complex));
 		for (i=0; i<sz2; i++) {
@@ -194,17 +318,17 @@ void faft(double complex *in, double complex *out, long long int sz){
 			in[i+sz2] = SQRT2_2*( in[2*i] + in[2*i+1] );
 		}
 
-		faft_step = faft_step<<1;
+		swifft_step = swifft_step<<1;
 		//if (sz>2){
-			faft(in+sz2, out+sz2, sz2);
+			swifft_gen(in+sz2, out+sz2, sz2);
 		//} else {
 		//	out[0] = in[0];
 		//	out[1] = in[1];
 		//}
-		faft_step = faft_step>>1;
-		j = -faft_step;
+		swifft_step = swifft_step>>1;
+		j = -swifft_step;
 		for (i=0; i<sz2; i++){
-			j += faft_step;
+			j += swifft_step;
 			j2 = j + sz_half;
 			i2 = i + sz2;
 			out[i] = G[j]*out[i2];
@@ -214,9 +338,9 @@ void faft(double complex *in, double complex *out, long long int sz){
 
 	/*
 	//multiply by H and G
-	j = -faft_step;
+	j = -swifft_step;
 	for (i=0; i<sz2; i++){
-		j += faft_step;
+		j += swifft_step;
 		j2 = j + sz_half;
 		i2 = i + sz2;
 		tmp = H[j]*out[i] + G[j]*out[i2];
@@ -226,3 +350,42 @@ void faft(double complex *in, double complex *out, long long int sz){
 	*/
 }
 
+
+// This routine is specialized for Haar-type filter
+void swifft_haar(double complex *in, double complex *out, int sz){
+	int i, i2, j,j2, sz2;
+
+	//printf("Caling swifft, sz=%lld, swifftw_step=%lld\n", sz, swifft_step);
+	sz2 = sz>>1;
+
+	if (swifft_step > 1<<0){
+		//stop prunning, do regular FFT using FFTW.
+		if (!p_init){
+			p = fftw_create_plan(sz, FFTW_FORWARD, FFTW_ESTIMATE);
+			p_init = 1;
+		}
+		fftw_one(p, (fftw_complex*) in, (fftw_complex*) out);
+	} else {
+		//Do wavelet transform only at the lower part, i.e., discart
+		//detail coeffs. Note that we don`t need any "scratch memory".
+		for (i=sz2-1; i+1; i--) {
+			in[i+sz2] = SQRT2_2*( in[2*i] + in[2*i+1] );
+		}
+
+		//Recursivelly call swifft_haar
+		swifft_step = swifft_step<<1;
+		swifft_haar(in+sz2, out+sz2, sz2);
+		swifft_step = swifft_step>>1;
+
+		//Multiply by the FFT of the wavelet coeffs.
+		j = -swifft_step;
+		for (i=0; i<sz2; i++){
+			j += swifft_step;
+			j2 = j + sz_half;
+			i2 = i + sz2;
+			out[i] = G[j]*out[i2];
+			out[i2] = G[j2]*out[i2];
+		}
+	}
+	return;
+}

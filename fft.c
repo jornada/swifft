@@ -6,14 +6,14 @@
 #include <complex.h>
 #include "fft.h"
 
-void rec_fft2(double complex *in, double complex *out, long long int sz, long long int s);
-void rec_fft3(double complex *in, double complex *out, long long int sz);
+void rec_fft2(double complex *in, double complex *out, int sz, long long int s);
+void rec_fft3(double complex *in, double complex *out, int sz);
 
 double complex *scratch;
 double complex *w;
-long long int fft_step;
+int fft_step;
 
-void prepare_fft(long long int sz){
+void prepare_fft(int sz){
 	int i;
 	double alpha;
 
@@ -32,8 +32,8 @@ void free_fft(){
 	free(w);
 }
 
-void fft(double complex *in, double complex *out, long long int sz){
-	long long int i,j, sz2;
+void fft(double complex *in, double complex *out, int sz){
+	int i,j, sz2;
 	double complex aa, bb;
 
 	//printf("Caling fft, sz=%lld, fftw_step=%lld\n", sz, fft_step);
@@ -73,14 +73,14 @@ void fft(double complex *in, double complex *out, long long int sz){
 		
 }
 
-void fft2(double complex *in, double complex *out, long long int sz){
-	//long long int i,j, sz2;
+void fft2(double complex *in, double complex *out, int sz){
+	//int i,j, sz2;
 
 	rec_fft2(in, out, sz, 1);
 }
 
-void rec_fft2(double complex *in, double complex *out, long long int sz, long long int s){
-	long long int i,j, sz2;
+void rec_fft2(double complex *in, double complex *out, int sz, long long int s){
+	int i,j, sz2;
 	double complex aa, bb;
 
 	//printf("Caling fft, sz=%lld, fftw_step=%lld\n", sz, fft_step);
@@ -115,9 +115,9 @@ void rec_fft2(double complex *in, double complex *out, long long int sz, long lo
 #define SWAP(a,b) tmp=b; b=a; a=tmp;
 
 //source: http://ieeexplore.ieee.org/stamp/stamp.jsp?tp=&arnumber=115695
-void frbr(double complex *x, long long int m) {
-	long long int br[256];
-	long long int m2,c,odd,offset,b_size,i,j,k;
+void frbr(double complex *x, int m) {
+	int br[256];
+	int m2,c,odd,offset,b_size,i,j,k;
 	double complex tmp;
 
 	m2=m>>1; c=1<<m2;  
@@ -198,14 +198,14 @@ void bitrev(double complex *real, unsigned int logN)
 }
 // end of bitrev function
 
-void fft3(double complex *in, double complex *out, long long int sz){
+void fft3(double complex *in, double complex *out, int sz){
 
 	bitrev(in, round(log2(sz)));
 	rec_fft3(in, out, sz);
 }
 
-void rec_fft3(double complex *in, double complex *out, long long int sz){
-	long long int i,j, sz2;
+void rec_fft3(double complex *in, double complex *out, int sz){
+	int i,j, sz2;
 	double complex aa, bb;
 
 	//printf("Caling fft, sz=%lld, fftw_step=%lld\n", sz, fft_step);

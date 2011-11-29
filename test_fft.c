@@ -8,14 +8,15 @@
 #include <fftw.h>
 
 #include <time.h>
-#include "fft.h"
 #include "utils.h"
+#include "fft.h"
 
-#define n 23
-#define REP 1
+#define n 16
+#define REP 10
+#define SIGNAL 0
 
 int main(int argc, char **argv){
-	long long int N, i;
+	int N, i;
 	double complex *vec_in;
 	double complex *vec_out;
 	fftw_plan p;
@@ -26,13 +27,13 @@ int main(int argc, char **argv){
 	vec_in  = (double complex*) malloc(sizeof(double complex)*N);
 	vec_out = (double complex*) malloc(sizeof(double complex)*N);
 
-	printf("Testing FFTm vector size N=%lli\n",N);
+	printf("Testing FFTm vector size N=%i\n",N);
 	printf("\n");
 
 	printf("Testing recursive FFT\n");
 
-	//sample input vector
-	for (i=0; i<N; i++) vec_in[i] = i;
+	create_signal(vec_in, N, SIGNAL);
+
 	//printf("Input vector:\n");
 	//print_cvec(vec_in, N);
 
@@ -57,7 +58,8 @@ int main(int argc, char **argv){
 	printf("Testing out-of-place recursive FFT\n");
 
 	//sample input vector
-	for (i=0; i<N; i++) vec_in[i] = i;
+	create_signal(vec_in, N, SIGNAL);
+
 	//printf("Input vector:\n");
 	//print_cvec(vec_in, N);
 
@@ -108,12 +110,13 @@ int main(int argc, char **argv){
 	printf("Testing fftw\n");
 
 	//sample input vector
-	for (i=0; i<N; i++) vec_in[i] = i;
+	create_signal(vec_in, N, SIGNAL);
 
 	//printf("Input vector:\n");
 	//print_cvec(vec_in, N);
 
 	p = fftw_create_plan(N, FFTW_FORWARD, FFTW_ESTIMATE);
+	//p = fftw_create_plan(N, FFTW_FORWARD, FFTW_MEASURE);
 
 	clock_gettime(CLOCK_REALTIME, &ts0); c0 = clock();
 	for (i=0; i<REP; i++)

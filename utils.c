@@ -9,6 +9,26 @@ inline double S(double x){
 	if (fabs(x)<1e-10) return 0; else return x;
 }
 
+//! Creates the test signal
+// 0 (default): linear signal (saw tooth)
+// 1 : sin
+// 2 : sin + spike
+void create_signal(complex double *vec, int sz, int kind){
+	int i;
+
+	switch (kind){
+		case 1:
+			for (i=0; i<sz; i++) vec[i] = sin(i*M_PI/sz*100);
+			break;
+		case 2:
+			for (i=0; i<sz; i++) vec[i] = sin(i*M_PI/sz*100);
+			vec[sz>>1]=-10;
+			break;
+		default:
+			for (i=0; i<sz; i++) vec[i] = i;
+	}
+}
+
 void print_times(struct timespec ts0, struct timespec ts1, clock_t c0, clock_t c1){
 	printf("\tTime (WALL): %f\tTime (clock): %f\n", \
 		(float) (ts1.tv_sec-ts0.tv_sec) + (float) (ts1.tv_nsec -ts0.tv_nsec)/1e9, \
@@ -88,4 +108,19 @@ void print_cvec(complex double *vec, int sz){
 		printf("    % .4g + % .4g I\n", S(creal(vec[i])), S(cimag(vec[i])));
 		printf("  ]\n");
 	}
+}
+
+void write_cvec(complex double *vec, int sz, char *fname){
+	FILE *fout;
+	int i;
+
+	if ( !(fout=fopen(fname, "w")) ){
+		printf("Error writting data to fname!\n");
+		return;
+	}
+
+	for (i=0; i<sz; i++){
+		fprintf(fout, "%d %lf %lf\n", i, creal(vec[i]), creal(vec[i]));
+	}
+	fclose(fout);
 }

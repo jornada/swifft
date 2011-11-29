@@ -1,0 +1,22 @@
+GOALS
+-----
+
+* Forearch swifft-{haar|db2|db4}:
+	* analyze error wrt number of coeffs dropped
+	* try different ``truncation schemes``
+	* try to estimate error wrt truncation
+
+* Time and error banchmarking:
+	* FFTw
+	* swifft-{haar|db2|db4}
+	* FFFT
+	* undersampled FFTw
+
+* Test these signals, for different sizes (+ noise)
+	* pure frequency (sine)
+	* constant
+	* localized gaussian
+	* narrow peak
+	* random
+
+
