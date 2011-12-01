@@ -10,11 +10,22 @@
 #include "fft.h"
 #include "wavelets.h"
 
-#define n 12
-#define REP 50
+//#define n 8
+//#define REP 1000
+//#define REP 1
+
+//#define n 16
+//#define REP 200
+
+#define n 20
+#define REP 5
+
+//#define n 22
+//#define REP 1
+
 //#define n 23
 //#define REP 1
-#define OUTPUT
+//#define OUTPUT
 //#define PRINT
 #define SIGNAL 2
 
@@ -51,7 +62,7 @@ int main(int argc, char **argv){
 	int N, i;
 	double complex *vec_in;
 	double complex *vec_tmp;
-	double complex *vec_fftw, *vec_us1, *vec_ffft, *vec_haar;
+	double complex *vec_ans;
 	double *h,*g, diff;
 	struct timespec ts0, ts1;
 	clock_t c0, c1;
@@ -61,10 +72,7 @@ int main(int argc, char **argv){
 	#define ALLOC(x) x = (double complex*) malloc(sizeof(double complex)*N);
 	ALLOC(vec_in);
 	ALLOC(vec_tmp);
-	ALLOC(vec_fftw);
-	ALLOC(vec_us1);
-	ALLOC(vec_ffft);
-	ALLOC(vec_haar);
+	ALLOC(vec_ans);
 
 	printf("\n");
 	printf("SWIFFT - BENCHMARK\n");
@@ -87,7 +95,7 @@ int main(int argc, char **argv){
 	//p = fftw_create_plan(N, FFTW_FORWARD, FFTW_MEASURE);
 	clock_gettime(CLOCK_REALTIME, &ts0); c0 = clock();
 
-	fftw_one(p, (fftw_complex*) vec_in, (fftw_complex*) vec_fftw);
+	fftw_one(p, (fftw_complex*) vec_in, (fftw_complex*) vec_ans);
 	for (i=1; i<REP; i++)
 		fftw_one(p, (fftw_complex*) vec_in, (fftw_complex*) vec_tmp);
 
@@ -97,11 +105,14 @@ int main(int argc, char **argv){
 
 	#ifdef PRINT
 	printf("\nAnswer:\n");
-	print_cvec(vec_fftw, N);
+	print_cvec(vec_ans, N);
 	#endif
-	write_cvec(vec_fftw, N, "freq_fftw.dat");
-	ifft(vec_fftw, vec_tmp, N);
+
+	ifft(vec_ans, vec_tmp, N);
+	#ifdef OUTPUT
 	write_cvec(vec_tmp, N, "inv_fftw.dat");
+	write_cvec(vec_ans, N, "freq_fftw.dat");
+	#endif
 
 	create_signal(vec_in, N, SIGNAL);
 	diff = diff_norm(vec_tmp, vec_in, N);
@@ -124,7 +135,7 @@ int main(int argc, char **argv){
 	clock_gettime(CLOCK_REALTIME, &ts0); c0 = clock();
 
 	under_sample(vec_tmp, N); //just for timing purposes
-	fftw_one(p, (fftw_complex*) vec_in, (fftw_complex*) vec_us1);
+	fftw_one(p, (fftw_complex*) vec_in, (fftw_complex*) vec_ans);
 	over_sample(vec_tmp, N); //just for timing purposes
 	for (i=1; i<REP; i++) {
 		under_sample(vec_tmp, N); //just for timing purposes
@@ -140,10 +151,21 @@ int main(int argc, char **argv){
 	printf("\nAnswer:\n");
 	print_cvec(vec_tmp, N);
 	#endif
-	ifft(vec_us1, vec_tmp, N>>1);
+
+	//use under-sampled FFT to reconstruct signal, and over-sample it
+	ifft(vec_ans, vec_tmp, N>>1);
 	over_sample(vec_tmp, N);
-	write_cvec(vec_us1, N>>1, "freq_us1.dat"); //note: this FFT contains N-1 freqs!
+	//write_cvec(vec_us1, N>>1, "freq_us1.dat"); //note: this FFT contains N-1 freqs!
+
+	//recalculate exact FFT from over-sampled signal
+	p = fftw_create_plan(N, FFTW_FORWARD, FFTW_ESTIMATE);
+	fftw_one(p, (fftw_complex*) vec_tmp, (fftw_complex*) vec_ans);
+	fftw_destroy_plan(p);
+
+	#ifdef OUTPUT
 	write_cvec(vec_tmp, N, "inv_us1.dat");
+	write_cvec(vec_ans, N, "freq_us1.dat"); //note: this FFT contains N-1 freqs!
+	#endif
 
 	create_signal(vec_in, N, SIGNAL);
 	diff = diff_norm(vec_tmp, vec_in, N);
@@ -161,7 +183,7 @@ int main(int argc, char **argv){
 	prepare_fft(N);
 	clock_gettime(CLOCK_REALTIME, &ts0); c0 = clock();
 
-	fft3(vec_in, vec_ffft, N);
+	fft3(vec_in, vec_ans, N);
 	for (i=1; i<REP; i++)
 		fft3(vec_in, vec_tmp, N);
 
@@ -172,10 +194,10 @@ int main(int argc, char **argv){
 
 
 	/******************************
-	*    SWIFFT - Haar Wavelet    *
+	*    SWIFFT - Haar Wavelet 1  *
 	*******************************/
 
-	printf("\nTesting SWIFFT - Haar Wavelet\n");
+	printf("\nTesting SWIFFT - Haar Wavelet - Approx. #1\n");
 
 	create_signal(vec_in, N, SIGNAL);
 	
@@ -191,11 +213,12 @@ int main(int argc, char **argv){
 	//g[0]=0.48296291314469025;g[1]=0.83651630373746899;g[2]=0.22414386804185735;g[3]=-0.12940952255092145;
 	//prepare_swifft(N, h, 4, g, 4);
 
+	for (i=0; i<N; i++) vec_ans[i] = 0.0;
 	clock_gettime(CLOCK_REALTIME, &ts0); c0 = clock();
 
-	swifft_haar(vec_in, vec_haar, N);
+	swifft_haar1(vec_in, vec_ans, N);
 	for (i=1; i<REP; i++)
-		swifft_haar(vec_in, vec_tmp, N);
+		swifft_haar1(vec_in, vec_tmp, N);
 
 	clock_gettime(CLOCK_REALTIME, &ts1); c1 = clock();
 	print_times(ts0, ts1, c0, c1);
@@ -203,15 +226,63 @@ int main(int argc, char **argv){
 
 	#ifdef PRINT
 	printf("\nAnswer:\n");
-	print_cvec(vec_haar, N);
+	print_cvec(vec_ans, N);
 	#endif
-	write_cvec(vec_haar, N, "freq_haar.dat");
-	ifft(vec_haar, vec_tmp, N);
-	write_cvec(vec_tmp, N, "inv_haar.dat");
+
+	ifft(vec_ans, vec_tmp, N);
+	#ifdef OUTPUT
+	write_cvec(vec_tmp, N, "inv_haar1.dat");
+	write_cvec(vec_ans, N, "freq_haar1.dat");
+	#endif
 
 	create_signal(vec_in, N, SIGNAL);
 	diff = diff_norm(vec_tmp, vec_in, N);
 	printf("\nError (2-norm): %lf\n", diff);
+
+
+
+	/******************************
+	*    SWIFFT - Haar Wavelet 2  *
+	*******************************/
+
+	printf("\nTesting SWIFFT - Haar Wavelet - Approx. #2\n");
+
+	create_signal(vec_in, N, SIGNAL);
+	
+	//use lazy wavelet filter;
+	h = (double*) calloc(N, sizeof(double));
+	g = (double*) calloc(N, sizeof(double));
+	//h[0]=1; g[1]=1;
+	g[0]=sqrt(2.)*0.5; g[1]=g[0];
+	h[0]=g[0];h[1]=-g[0];
+	prepare_swifft(N, h, 2, g, 2);
+
+	for (i=0; i<N; i++) vec_ans[i] = 0.0;
+	clock_gettime(CLOCK_REALTIME, &ts0); c0 = clock();
+
+	swifft_haar3(vec_in, vec_ans, N);
+	for (i=1; i<REP; i++)
+		swifft_haar3(vec_in, vec_tmp, N);
+
+	clock_gettime(CLOCK_REALTIME, &ts1); c1 = clock();
+	print_times(ts0, ts1, c0, c1);
+	free_swifft();
+
+	#ifdef PRINT
+	printf("\nAnswer:\n");
+	print_cvec(vec_ans, N);
+	#endif
+
+	ifft(vec_ans, vec_tmp, N);
+	#ifdef OUTPUT
+	write_cvec(vec_tmp, N, "inv_haar2.dat");
+	write_cvec(vec_ans, N, "freq_haar2.dat");
+	#endif
+
+	create_signal(vec_in, N, SIGNAL);
+	diff = diff_norm(vec_tmp, vec_in, N);
+	printf("\nError (2-norm): %lf\n", diff);
+
 
 	return 0;
 }

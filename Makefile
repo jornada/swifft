@@ -1,12 +1,14 @@
 CC=gcc
 #CCFLAGS=-Wall -O0 -g -ggdb
-CCFLAGS=-Wall -O3 -ffast-math 
+CCFLAGS=-Wall -O3 -ffast-math
 #CCFLAGS=-Wall -O3 
-LDFLAGS=-lm -lrt -lfftw #-lrfftw
+LDFLAGS=-lm -lrt -lfftw
+
+#profiling: -pg, run normally, use gprof later
 
 #CC=icc
-#CCFLAGS=-Wall -O3 -fast
-#LDFLAGS=-lfftw
+#CCFLAGS=-Wall -O3 -fast -opt-jump-tables=large
+#LDFLAGS=-lm -lrt -lfftw
 
 all: test_fft test_wavelets
 #wavelet
