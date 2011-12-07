@@ -1,11 +1,31 @@
+/* test_swifft.c
+ * 
+ * SWIFFT - Swift Wavelet-based Inexact FFT
+ * Copyright (C) 2011 Felipe H. da Jornada <jornada@civet.berkeley.edu>
+ * 
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation; either version 2
+ * of the License, or (at your option) any later version.
+ * 
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+ */
 
 #include <stdlib.h>
 #include <stdio.h>
 #include <math.h>
 #include <complex.h>
 #include <fftw.h>
-
+#include <string.h>
 #include <time.h>
+
 #include "utils.h"
 #include "fft.h"
 #include "swifft.h"
@@ -75,6 +95,10 @@ int main(int argc, char **argv){
 	ALLOC(vec_tmp);
 	ALLOC(vec_ans);
 
+	// initialize wavelet filter banks
+	h = (double*) malloc(N*sizeof(double));
+	g = (double*) malloc(N*sizeof(double));
+
 	printf("\n");
 	printf("SWIFFT - BENCHMARK\n");
 	printf("------------------\n");
@@ -121,7 +145,7 @@ int main(int argc, char **argv){
 
 
 	//not computed under-sampled FFT anymore, since it's hard
-	//to get the timing info accuratelly.
+	//to get the timing info accurately.
 
 	#if 0
 
@@ -207,10 +231,10 @@ int main(int argc, char **argv){
 	printf("\nTesting SWIFFT - Haar Wavelet - Alg. #1\n");
 
 	create_signal(vec_in, N, SIGNAL);
-	
-	h = (double*) calloc(N, sizeof(double));
-	g = (double*) calloc(N, sizeof(double));
-	//g[0]=0.5; g[1]=g[0];
+
+	//wavelet filter
+	memset(h, 0, N*sizeof(double));
+	memset(g, 0, N*sizeof(double));
 	g[0]=sqrt(2.)*0.5; g[1]=g[0];
 	h[0]=g[0];h[1]=-g[0];
 	prepare_swifft(N, h, 2, g, 2, 1);
@@ -249,8 +273,10 @@ int main(int argc, char **argv){
 	printf("\nTesting SWIFFT - Haar Wavelet - Alg. #1 - Non-orthog\n");
 
 	create_signal(vec_in, N, SIGNAL);
-	h = (double*) calloc(N, sizeof(double));
-	g = (double*) calloc(N, sizeof(double));
+
+	//wavelet filter	
+	memset(h, 0, N*sizeof(double));
+	memset(g, 0, N*sizeof(double));
 	g[0]=0.5; g[1]=g[0];
 	h[0]=g[0];h[1]=-g[0];
 	prepare_swifft(N, h, 2, g, 2, 1);
@@ -338,11 +364,18 @@ int main(int argc, char **argv){
 	printf("\nTesting SWIFFT - DB2 Wavelet - Alg. #1\n");
 
 	create_signal(vec_in, N, SIGNAL);
-	h = (double*) calloc(N, sizeof(double));
-	g = (double*) calloc(N, sizeof(double));
 
-	h[0]=-0.12940952255092145;h[1]=-0.22414386804185735;h[2]=0.83651630373746899;h[3]=-0.48296291314469025;
-	g[0]=0.48296291314469025;g[1]=0.83651630373746899;g[2]=0.22414386804185735;g[3]=-0.12940952255092145;
+	//wavelet filter	
+	memset(h, 0, N*sizeof(double));
+	memset(g, 0, N*sizeof(double));
+	h[0]=-0.12940952255092145;
+	h[1]=-0.22414386804185735;
+	h[2]=0.83651630373746899;
+	h[3]=-0.48296291314469025;
+	g[0]=0.48296291314469025;
+	g[1]=0.83651630373746899;
+	g[2]=0.22414386804185735;
+	g[3]=-0.12940952255092145;
 	prepare_swifft(N, h, 4, g, 4, 2);
 
 	for (i=0; i<N; i++) vec_ans[i] = 0.0;
@@ -378,16 +411,16 @@ int main(int argc, char **argv){
 	printf("\nTesting SWIFFT - DB3 Wavelet - Alg. #1\n");
 
 	create_signal(vec_in, N, SIGNAL);
-	h = (double*) calloc(N, sizeof(double));
-	g = (double*) calloc(N, sizeof(double));
 
+	//wavelet filter	
+	memset(h, 0, N*sizeof(double));
+	memset(g, 0, N*sizeof(double));
 	h[0]=0.035226291882100656;
 	h[1]=0.085441273882241486;
 	h[2]=-0.13501102001039084;
 	h[3]=-0.45987750211933132;
 	h[4]=0.80689150931333875;
 	h[5]=-0.33267055295095688;
-
 	g[0]=0.33267055295095688;
 	g[1]=0.80689150931333875;
 	g[2]=0.45987750211933132;
@@ -421,6 +454,13 @@ int main(int argc, char **argv){
 	create_signal(vec_in, N, SIGNAL);
 	diff = diff_norm(vec_tmp, vec_in, N);
 	printf("\nError (2-norm): %lf\n", diff);
+
+	/*******************************/
+	free(h);
+	free(g);
+	free(vec_in);
+	free(vec_tmp);
+	free(vec_ans);
 
 	return 0;
 }

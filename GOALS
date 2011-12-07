@@ -22,7 +22,7 @@ GOALS
 WHAT I HAVE FOUND
 -----------------
 
-* I can`t really compare truncated with Haar...
+* I can`t really compare truncated FFT with Haar...
 * for Haar wavelets, time to do wavelet transform is not so big (ie, flops are cheap)
-* prunning H and G is no good (because we can`t truncate the for loop, it acts on large and small elements simultaneously)
-* it doesn`t help using non-orthogonal Haar filters
+* prunning H and G is not good (because we can`t truncate the for loop, it acts on large and small elements simultaneously)
+* it helps a little big to use non-orthogonal Haar filters

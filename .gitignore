@@ -1,7 +1,6 @@
 LM_LICENSE_FILE
 test_fft
-test_wavelets
-wavelets
+test_swifft
 *.o
 *~
 *.swp

@@ -1,3 +1,22 @@
+/* swifft.c
+ * 
+ * SWIFFT - Swift Wavelet-based Inexact FFT
+ * Copyright (C) 2011 Felipe H. da Jornada <jornada@civet.berkeley.edu>
+ * 
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation; either version 2
+ * of the License, or (at your option) any later version.
+ * 
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+ */
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -22,15 +41,15 @@ int sz_half;
 int swifft_shift, swifft_iter;
 //! Classical FFT twiddle factor
 double complex *w2;
-//! FFTW plans, used by swifft after prunning is over
+//! FFTW plans, used by swifft after pruning is over
 fftw_plan *ps, p;
-//! Depth of prunning scheme. The meaning of this depends on the algorithm
+//! Depth of pruning scheme. The meaning of this depends on the algorithm
 int swifft_depth;
 
 #define SQRT2_2 0.7071067811865475 
 #define max(a,b) (a>b?a:b)
 
-//! Called by swifft routines after prunning is over
+//! Called by swifft routines after pruning is over
 void full_fft(double complex *in, double complex *out, int sz){
 	fftw_plan p_;
 
@@ -74,7 +93,7 @@ void sparse_FFT(double *in, int sz_in, double complex *out, int sz_out){
 //! \param h_sz_ length of h_
 //! \param g_ low frequency wavelet filter
 //! \param g_sz_ length of g_
-//! \param depth prunning depth. The meaning of this depends of the swifft algorithm
+//! \param depth pruning depth. The meaning of this depends of the swifft algorithm
 void prepare_swifft(int sz, double *h_, int h_sz_, double *g_, int g_sz_, int depth){
 	double alpha;
 	int i, sz2;
@@ -137,7 +156,7 @@ void swifft(double complex *in, double complex *out, int sz){
 	//double complex *TMP;
 
 
-	//printf("Caling swifft, sz=%lld, swifftw_step=%lld\n", sz, swifft_shift);
+	//printf("Calling swifft, sz=%lld, swifftw_step=%lld\n", sz, swifft_shift);
 	sz2 = sz>>1;
 	//wavelet transform
 
@@ -188,7 +207,7 @@ void swifft(double complex *in, double complex *out, int sz){
 			out[i] = tmp;
 		}/
 		
-		//stop prunning, do regular FFT!
+		//stop pruning, do regular FFT!
 		if (!p_init){
 			p = fftw_create_plan(sz, FFTW_FORWARD, FFTW_ESTIMATE);
 			p_init = 1;
@@ -259,11 +278,11 @@ void swifft_gen1(double complex *in, double complex *out, int sz){
 	int i_start, buf_window;
 	double complex tmp;
 
-	//printf("Caling swifft, sz=%lld, swifftw_step=%lld\n", sz, swifft_shift);
+	//printf("Calling swifft, sz=%lld, swifftw_step=%lld\n", sz, swifft_shift);
 	sz2 = sz>>1;
 
 	if (swifft_iter >= swifft_depth){
-		//stop prunning, do regular FFT using FFTW.
+		//stop pruning, do regular FFT using FFTW.
 		fftw_one(ps[swifft_iter], (fftw_complex*) in, (fftw_complex*) out);
 		
 	} else {
@@ -321,7 +340,7 @@ void swifft_gen1(double complex *in, double complex *out, int sz){
 		}
 #endif
 
-		//Recursivelly call swifft_gen1
+		//Recursively call swifft_gen1
 		swifft_shift <<= 1;
 		swifft_iter++;
 		//swifft_gen1(in, out, sz2); //neglect details coeffs
@@ -347,20 +366,20 @@ void swifft_gen1(double complex *in, double complex *out, int sz){
 void swifft_haar1(double complex *in, double complex *out, int sz){
 	int i, i2, j,j2, sz2, sz_tmp;
 
-	//printf("Caling swifft, sz=%d, swifftw_step=%d\n", sz, swifft_shift);
+	//printf("Calling swifft, sz=%d, swifftw_step=%d\n", sz, swifft_shift);
 	sz2 = sz>>1;
 
 	if (swifft_iter >= swifft_depth){
-		//stop prunning, do regular FFT using FFTW.
+		//stop pruning, do regular FFT using FFTW.
 		fftw_one(ps[swifft_iter], (fftw_complex*) in, (fftw_complex*) out);
 	} else {
-		//Do wavelet transform only at the lower part, i.e., discart
+		//Do wavelet transform only at the lower part, i.e., discard
 		//detail coeffs. Note that we don`t need any "scratch memory".
 		for (i=sz2-1; i+1; i--) {
 			in[i+sz2] = SQRT2_2*( in[2*i] + in[2*i+1] );
 		}
 
-		//Recursivelly call swifft_haar1
+		//Recursively call swifft_haar1
 		swifft_shift <<= 1;
 		swifft_iter++;
 		//swifft_haar1(in, out, sz2); //neglect details coeffs
@@ -389,21 +408,21 @@ void swifft_haar1(double complex *in, double complex *out, int sz){
 void swifft_haar1_non_orthog(double complex *in, double complex *out, int sz){
 	int i, i2, j,j2, sz2;
 
-	//printf("Caling swifft, sz=%d, swifftw_step=%d\n", sz, swifft_shift);
+	//printf("Calling swifft, sz=%d, swifftw_step=%d\n", sz, swifft_shift);
 	sz2 = sz>>1;
 
 	if (swifft_iter >= swifft_depth){
-		//stop prunning, do regular FFT using FFTW.
+		//stop pruning, do regular FFT using FFTW.
 		fftw_one(ps[swifft_iter], (fftw_complex*) in, (fftw_complex*) out);
 	} else {
-		//Do wavelet transform only at the lower part, i.e., discart
+		//Do wavelet transform only at the lower part, i.e., discard
 		//detail coeffs. Note that we don`t need any "scratch memory".
 		
 		for (i=sz2-1; i+1; i--) {
 			in[i+sz2] = in[2*i] + in[2*i+1];
 		}
 
-		//Recursivelly call swifft_haar, but ignore lower part of the decomposition
+		//Recursively call swifft_haar, but ignore lower part of the decomposition
 		swifft_shift <<= 1;
 		swifft_iter++;
 		//swifft_haar(in, out, sz2); //neglect details coeffs
@@ -425,13 +444,13 @@ void swifft_haar1_non_orthog(double complex *in, double complex *out, int sz){
 }
 
 
-//! This routine uses a less agressive prunning scheme to approximate the
+//! This routine uses a less aggressive pruning scheme to approximate the
 //!  FFT, and it is specialized for Haar filter.
 void swifft_haar2(double complex *in, double complex *out, int sz){
 	int i, i2, j,j2, sz2, sz4;
 	double complex tmp;
 
-	//printf("Caling swifft, sz=%d, swifftw_step=%d\n", sz, swifft_shift);
+	//printf("Calling swifft, sz=%d, swifftw_step=%d\n", sz, swifft_shift);
 	sz2 = sz>>1;
 
 	if (swifft_iter < swifft_depth){
@@ -492,7 +511,7 @@ void rec_swifft_haar2_op(double complex *in, double complex *out, int sz, double
 	int i, i2, j,j2, sz2;
 	double complex tmp;
 
-	//printf("Caling swifft, sz=%d, swifftw_step=%d\n", sz, swifft_shift);
+	//printf("Calling swifft, sz=%d, swifftw_step=%d\n", sz, swifft_shift);
 	sz2 = sz>>1;
 
 	if (swifft_iter < swifft_depth){
