@@ -63,9 +63,13 @@ void create_signal(complex double *vec, int sz, int kind){
 }
 
 void print_times(struct timespec ts0, struct timespec ts1, clock_t c0, clock_t c1){
-	printf("\tTime (WALL): %f\tTime (clock): %f\n", \
-		(float) (ts1.tv_sec-ts0.tv_sec) + (float) (ts1.tv_nsec -ts0.tv_nsec)/1e9, \
-		(float)(c1-c0)/CLOCKS_PER_SEC);
+	/*
+	printf("\tTime (WALL):    %lf\tTime (clock):    %lf\n", \
+		(double) (ts1.tv_sec-ts0.tv_sec) + (double) (ts1.tv_nsec -ts0.tv_nsec)/1e9, \
+		(double)(c1-c0)/CLOCKS_PER_SEC);
+	*/
+	printf("\tTime (WALL):    %lf\n", \
+		(double) (ts1.tv_sec-ts0.tv_sec) + (double) (ts1.tv_nsec -ts0.tv_nsec)/1e9);
 }
 
 double vec_norm(double complex *a, int sz){
@@ -156,4 +160,38 @@ void write_cvec(complex double *vec, int sz, char *fname){
 		fprintf(fout, "%d %lf %lf\n", i, creal(vec[i]), creal(vec[i]));
 	}
 	fclose(fout);
+}
+
+void load_filters(double *h_, double *g_, int sz, char *fname){
+	FILE *fin;
+	int sz_h, sz_g, i;
+
+	memset(h_, 0, sz*sizeof(double));
+	memset(g_, 0, sz*sizeof(double));
+
+	fin = fopen(fname, "r");
+	if (!fin){
+		printf("ERROR: could not open wavelet filter from file '%s'\n", fname);
+		return;
+	}
+	// get size of h filter
+	fscanf(fin, "%d", &sz_h);
+	for (i=0; i<sz_h; i++){
+		if (feof(fin)){
+			printf("ERROR: read past end of file at '%s'\n", fname);
+			break;
+		}
+		fscanf(fin, "%lf", h_ + i);
+	}
+	// get size of g filter
+	fscanf(fin, "%d", &sz_g);
+	for (i=0; i<sz_g; i++){
+		if (feof(fin)){
+			printf("ERROR: read past end of file at '%s'\n", fname);
+			break;
+		}
+		fscanf(fin, "%lf", g_ + i);
+	}
+	fclose(fin);
+
 }

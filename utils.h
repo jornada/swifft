@@ -6,3 +6,4 @@ void print_vec(double *vec, int sz);
 void print_cvec(complex double *vec, int sz);
 void create_signal(complex double *vec, int sz, int kind);
 void write_cvec(complex double *vec, int sz, char *fname);
+void load_filters(double *h_, double *g_, int sz, char *fname);
