@@ -1,7 +1,7 @@
 GOALS
 -----
 
-* Forearch swifft-{haar|db2|db4}:
+* Foreatch swifft-{haar|db2|db4}:
 	* analyze error wrt number of coeffs dropped
 	* try different ``truncation schemes``
 	* try to estimate error wrt truncation
@@ -19,4 +19,10 @@ GOALS
 	* narrow peak
 	* random
 
+WHAT I HAVE FOUND
+-----------------
 
+* I can`t really compare truncated with Haar...
+* for Haar wavelets, time to do wavelet transform is not so big (ie, flops are cheap)
+* prunning H and G is no good (because we can`t truncate the for loop, it acts on large and small elements simultaneously)
+* it doesn`t help using non-orthogonal Haar filters

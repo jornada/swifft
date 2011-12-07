@@ -29,8 +29,8 @@ void create_signal(complex double *vec, int sz, int kind){
 			break;
 		case 2:
 			srand(0);
-			for (i=0; i<sz; i++) vec[i] = sin(i*M_PI*0.075) + (rand()%(2001) - 1000)*1e-4;
-			vec[sz>>1]=-10;
+			for (i=0; i<sz; i++) vec[i] = sin(i*M_PI*0.05) + (rand()%(2001) - 1000)*1e-4;
+			vec[sz>>1]=-2;
 			break;
 		case 3:
 			srand(0);

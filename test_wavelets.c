@@ -11,16 +11,17 @@
 #include "wavelets.h"
 
 //#define n 8
-//#define REP 1000
+//#define REP 10000
 //#define REP 1
 
-//#define n 16
-//#define REP 200
+#define n 15
+#define REP 200
+//#define REP 1
 
-#define n 20
-#define REP 5
+//#define n 20
+//#define REP 5
 
-//#define n 22
+//#define n 24
 //#define REP 1
 
 //#define n 23
@@ -119,6 +120,10 @@ int main(int argc, char **argv){
 	printf("\nError (2-norm): %lf\n", diff);
 
 
+	//not computed under-sampled FFT anymore, since it's hard
+	//to get the timing info accuratelly.
+
+	#if 0
 
 	/*************************
 	*   Under-sampled FFTW   *
@@ -132,7 +137,10 @@ int main(int argc, char **argv){
 
 	p = fftw_create_plan(N>>1, FFTW_FORWARD, FFTW_ESTIMATE);
 	//p = fftw_create_plan(N, FFTW_FORWARD, FFTW_MEASURE);
+	//create_signal(vec_in, N, SIGNAL);
+
 	clock_gettime(CLOCK_REALTIME, &ts0); c0 = clock();
+	//under_sample(vec_in, N);
 
 	under_sample(vec_tmp, N); //just for timing purposes
 	fftw_one(p, (fftw_complex*) vec_in, (fftw_complex*) vec_ans);
@@ -171,7 +179,7 @@ int main(int argc, char **argv){
 	diff = diff_norm(vec_tmp, vec_in, N);
 	printf("\nError (2-norm): %lf\n", diff);
 
-
+	#endif
 
 	/********************************************
 	*   Felipe's FFT  (bit-reversed in-place)   *
@@ -192,33 +200,27 @@ int main(int argc, char **argv){
 	free_fft();
 
 
-
 	/******************************
 	*    SWIFFT - Haar Wavelet 1  *
 	*******************************/
 
-	printf("\nTesting SWIFFT - Haar Wavelet - Approx. #1\n");
+	printf("\nTesting SWIFFT - Haar Wavelet - Alg. #1\n");
 
 	create_signal(vec_in, N, SIGNAL);
 	
-	//use lazy wavelet filter;
 	h = (double*) calloc(N, sizeof(double));
 	g = (double*) calloc(N, sizeof(double));
-	//h[0]=1; g[1]=1;
+	//g[0]=0.5; g[1]=g[0];
 	g[0]=sqrt(2.)*0.5; g[1]=g[0];
 	h[0]=g[0];h[1]=-g[0];
 	prepare_swifft(N, h, 2, g, 2);
 
-	//h[0]=-0.12940952255092145;h[1]=-0.22414386804185735;h[2]=0.83651630373746899;h[3]=-0.48296291314469025;
-	//g[0]=0.48296291314469025;g[1]=0.83651630373746899;g[2]=0.22414386804185735;g[3]=-0.12940952255092145;
-	//prepare_swifft(N, h, 4, g, 4);
-
 	for (i=0; i<N; i++) vec_ans[i] = 0.0;
 	clock_gettime(CLOCK_REALTIME, &ts0); c0 = clock();
 
-	swifft_haar1(vec_in, vec_ans, N);
+	swifft_haar1(vec_in, vec_ans, N, 1);
 	for (i=1; i<REP; i++)
-		swifft_haar1(vec_in, vec_tmp, N);
+		swifft_haar1(vec_in, vec_tmp, N, 1);
 
 	clock_gettime(CLOCK_REALTIME, &ts1); c1 = clock();
 	print_times(ts0, ts1, c0, c1);
@@ -240,19 +242,63 @@ int main(int argc, char **argv){
 	printf("\nError (2-norm): %lf\n", diff);
 
 
+	/*********************************************
+	*    SWIFFT - Haar Wavelet 1 - Non-orthog    *
+	**********************************************/
 
+	printf("\nTesting SWIFFT - Haar Wavelet - Alg. #1 - Non-orthog\n");
+
+	create_signal(vec_in, N, SIGNAL);
+	h = (double*) calloc(N, sizeof(double));
+	g = (double*) calloc(N, sizeof(double));
+	g[0]=0.5; g[1]=g[0];
+	h[0]=g[0];h[1]=-g[0];
+	prepare_swifft(N, h, 2, g, 2);
+
+	for (i=0; i<N; i++) vec_ans[i] = 0.0;
+	clock_gettime(CLOCK_REALTIME, &ts0); c0 = clock();
+
+	//XXX
+	swifft_haar1_non_orthog(vec_in, vec_ans, N, 1);
+	//swifft_gen1(vec_in, vec_ans, N, 1);
+	for (i=1; i<REP; i++)
+		//XXX
+		swifft_haar1_non_orthog(vec_in, vec_tmp, N, 1);
+		//swifft_gen1(vec_in, vec_tmp, N, 1);
+
+	clock_gettime(CLOCK_REALTIME, &ts1); c1 = clock();
+	print_times(ts0, ts1, c0, c1);
+	free_swifft();
+
+	#ifdef PRINT
+	printf("\nAnswer:\n");
+	print_cvec(vec_ans, N);
+	#endif
+
+	ifft(vec_ans, vec_tmp, N);
+	#ifdef OUTPUT
+	write_cvec(vec_tmp, N, "inv_haar1.dat");
+	write_cvec(vec_ans, N, "freq_haar1.dat");
+	#endif
+
+	create_signal(vec_in, N, SIGNAL);
+	diff = diff_norm(vec_tmp, vec_in, N);
+	printf("\nError (2-norm): %lf\n", diff);
+
+
+	#if 0
 	/******************************
 	*    SWIFFT - Haar Wavelet 2  *
 	*******************************/
 
-	printf("\nTesting SWIFFT - Haar Wavelet - Approx. #2\n");
+	printf("\nTesting SWIFFT - Haar Wavelet - Alg. #2\n");
 
 	create_signal(vec_in, N, SIGNAL);
 	
 	//use lazy wavelet filter;
 	h = (double*) calloc(N, sizeof(double));
 	g = (double*) calloc(N, sizeof(double));
-	//h[0]=1; g[1]=1;
+	//g[0]=0.5; g[1]=g[0];
 	g[0]=sqrt(2.)*0.5; g[1]=g[0];
 	h[0]=g[0];h[1]=-g[0];
 	prepare_swifft(N, h, 2, g, 2);
@@ -260,9 +306,9 @@ int main(int argc, char **argv){
 	for (i=0; i<N; i++) vec_ans[i] = 0.0;
 	clock_gettime(CLOCK_REALTIME, &ts0); c0 = clock();
 
-	swifft_haar3(vec_in, vec_ans, N);
+	swifft_haar2(vec_in, vec_ans, N, 1);
 	for (i=1; i<REP; i++)
-		swifft_haar3(vec_in, vec_tmp, N);
+		swifft_haar2(vec_in, vec_tmp, N, 1);
 
 	clock_gettime(CLOCK_REALTIME, &ts1); c1 = clock();
 	print_times(ts0, ts1, c0, c1);
@@ -282,7 +328,99 @@ int main(int argc, char **argv){
 	create_signal(vec_in, N, SIGNAL);
 	diff = diff_norm(vec_tmp, vec_in, N);
 	printf("\nError (2-norm): %lf\n", diff);
+	#endif
 
+
+	/*******************************
+	*    SWIFFT - DB2 - Alg. #1    *
+	********************************/
+
+	printf("\nTesting SWIFFT - DB2 Wavelet - Alg. #1\n");
+
+	create_signal(vec_in, N, SIGNAL);
+	h = (double*) calloc(N, sizeof(double));
+	g = (double*) calloc(N, sizeof(double));
+
+	h[0]=-0.12940952255092145;h[1]=-0.22414386804185735;h[2]=0.83651630373746899;h[3]=-0.48296291314469025;
+	g[0]=0.48296291314469025;g[1]=0.83651630373746899;g[2]=0.22414386804185735;g[3]=-0.12940952255092145;
+	prepare_swifft(N, h, 4, g, 4);
+
+	for (i=0; i<N; i++) vec_ans[i] = 0.0;
+	clock_gettime(CLOCK_REALTIME, &ts0); c0 = clock();
+
+	swifft_gen1(vec_in, vec_ans, N, 1);
+	for (i=1; i<REP; i++)
+		swifft_gen1(vec_in, vec_tmp, N, 1);
+
+	clock_gettime(CLOCK_REALTIME, &ts1); c1 = clock();
+	print_times(ts0, ts1, c0, c1);
+	free_swifft();
+
+	#ifdef PRINT
+	printf("\nAnswer:\n");
+	print_cvec(vec_ans, N);
+	#endif
+
+	ifft(vec_ans, vec_tmp, N);
+	#ifdef OUTPUT
+	write_cvec(vec_tmp, N, "inv_db2.dat");
+	write_cvec(vec_ans, N, "freq_db2.dat");
+	#endif
+
+	create_signal(vec_in, N, SIGNAL);
+	diff = diff_norm(vec_tmp, vec_in, N);
+	printf("\nError (2-norm): %lf\n", diff);
+
+	/*******************************
+	*    SWIFFT - DB3 - Alg. #1    *
+	********************************/
+
+	printf("\nTesting SWIFFT - DB3 Wavelet - Alg. #1\n");
+
+	create_signal(vec_in, N, SIGNAL);
+	h = (double*) calloc(N, sizeof(double));
+	g = (double*) calloc(N, sizeof(double));
+
+	h[0]=0.035226291882100656;
+	h[1]=0.085441273882241486;
+	h[2]=-0.13501102001039084;
+	h[3]=-0.45987750211933132;
+	h[4]=0.80689150931333875;
+	h[5]=-0.33267055295095688;
+
+	g[0]=0.33267055295095688;
+	g[1]=0.80689150931333875;
+	g[2]=0.45987750211933132;
+	g[3]=-0.13501102001039084;
+	g[4]=-0.085441273882241486;
+	g[5]=0.035226291882100656;
+	prepare_swifft(N, h, 6, g, 6);
+
+	for (i=0; i<N; i++) vec_ans[i] = 0.0;
+	clock_gettime(CLOCK_REALTIME, &ts0); c0 = clock();
+
+	swifft_gen1(vec_in, vec_ans, N, 1);
+	for (i=1; i<REP; i++)
+		swifft_gen1(vec_in, vec_tmp, N, 1);
+
+	clock_gettime(CLOCK_REALTIME, &ts1); c1 = clock();
+	print_times(ts0, ts1, c0, c1);
+	free_swifft();
+
+	#ifdef PRINT
+	printf("\nAnswer:\n");
+	print_cvec(vec_ans, N);
+	#endif
+
+	ifft(vec_ans, vec_tmp, N);
+	#ifdef OUTPUT
+	write_cvec(vec_tmp, N, "inv_db3.dat");
+	write_cvec(vec_ans, N, "freq_db3.dat");
+	#endif
+
+	create_signal(vec_in, N, SIGNAL);
+	diff = diff_norm(vec_tmp, vec_in, N);
+	printf("\nError (2-norm): %lf\n", diff);
 
 	return 0;
 }
