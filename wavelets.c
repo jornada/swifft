@@ -248,9 +248,11 @@ void swifft(double complex *in, double complex *out, int sz){
 }
 */
 
+#define LOW_COMM
 //! This routine takes any input filter.
 void swifft_gen1(double complex *in, double complex *out, int sz, int depth){
 	int i, i2, j,j2, sz2;
+	int i_start, buf_window;
 	double complex tmp;
 
 	//printf("Caling swifft, sz=%lld, swifftw_step=%lld\n", sz, swifft_shift);
@@ -261,6 +263,31 @@ void swifft_gen1(double complex *in, double complex *out, int sz, int depth){
 		fftw_one(ps[swifft_iter], (fftw_complex*) in, (fftw_complex*) out);
 		
 	} else {
+#ifdef LOW_COMM
+		i_start = sz2 - max_window + 1;
+		//copy what will be needed later
+		buf_window = 2*(max_window - 2);
+		i = sz - buf_window;
+		memcpy(swifft_scratch, in+i, buf_window*sizeof(double complex));
+		memcpy(swifft_scratch+buf_window, in, (max_window-2)*sizeof(double complex));
+		//do wavelet transform on the easy part
+		for (i=sz2 - max_window + 1; i+1; i--) {
+			in[i+sz2]=0;
+			for (j=0; j<max_window; j++){
+				j2 = (i<<1) + j;
+				in[i+sz2] += g[j]*in[j2];
+			}
+		}
+		//deal with the 3*(max_window - 2) "harder" points
+		i2=-2;
+		for (i=sz2 - max_window + 2; i<sz2; i++){
+			in[i+sz2]=0;
+			i2+=2;
+			for (j=0; j<max_window; j++){
+				in[i+sz2] += g[j]*swifft_scratch[j+i2];
+			}
+		}
+#else
 		//wavelet transform
 		memcpy(swifft_scratch, in, sz*sizeof(double complex));
 		//separates the wavelet transform into two parts: (a) one loop 
@@ -286,6 +313,7 @@ void swifft_gen1(double complex *in, double complex *out, int sz, int depth){
 				in[i+sz2] += g[j]*swifft_scratch[j2];
 			}
 		}
+#endif
 
 		//Recursivelly call swifft_gen1
 		swifft_shift <<= 1;

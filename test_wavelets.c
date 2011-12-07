@@ -348,9 +348,9 @@ int main(int argc, char **argv){
 	for (i=0; i<N; i++) vec_ans[i] = 0.0;
 	clock_gettime(CLOCK_REALTIME, &ts0); c0 = clock();
 
-	swifft_gen1(vec_in, vec_ans, N, 1);
+	swifft_gen1(vec_in, vec_ans, N, 2);
 	for (i=1; i<REP; i++)
-		swifft_gen1(vec_in, vec_tmp, N, 1);
+		swifft_gen1(vec_in, vec_tmp, N, 2);
 
 	clock_gettime(CLOCK_REALTIME, &ts1); c1 = clock();
 	print_times(ts0, ts1, c0, c1);
@@ -399,9 +399,9 @@ int main(int argc, char **argv){
 	for (i=0; i<N; i++) vec_ans[i] = 0.0;
 	clock_gettime(CLOCK_REALTIME, &ts0); c0 = clock();
 
-	swifft_gen1(vec_in, vec_ans, N, 1);
+	swifft_gen1(vec_in, vec_ans, N, 2);
 	for (i=1; i<REP; i++)
-		swifft_gen1(vec_in, vec_tmp, N, 1);
+		swifft_gen1(vec_in, vec_tmp, N, 2);
 
 	clock_gettime(CLOCK_REALTIME, &ts1); c1 = clock();
 	print_times(ts0, ts1, c0, c1);
