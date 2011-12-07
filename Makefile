@@ -15,7 +15,7 @@ CC=pgcc
 CFLAGS+=-Minform=warn -fast -Msafeptr=all -O4 
 LDFLAGS+=-lm -lrt -lfftw  
 
-all: test_fft test_wavelets
+all: test_fft test_swifft
 #wavelet
 
 clean:
@@ -33,12 +33,12 @@ fft.o: fft.c
 utils.o: utils.c
 	$(CC) $(CFLAGS) -c utils.c
 
-test_wavelets: test_wavelets.o wavelets.o utils.o fft.o
-	$(CC) $(CFLAGS) -o test_wavelets test_wavelets.o wavelets.o utils.o fft.o $(LDFLAGS)
+test_swifft: test_swifft.o swifft.o utils.o fft.o
+	$(CC) $(CFLAGS) -o test_swifft test_swifft.o swifft.o utils.o fft.o $(LDFLAGS)
 
-test_wavelets.o: test_wavelets.c
-	$(CC) $(CFLAGS) -c test_wavelets.c 
+test_swifft.o: test_swifft.c
+	$(CC) $(CFLAGS) -c test_swifft.c 
 
-wavelets.o: wavelets.c
-	$(CC) $(CFLAGS) -c wavelets.c 
+swifft.o: swifft.c
+	$(CC) $(CFLAGS) -c swifft.c
 

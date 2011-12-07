@@ -8,7 +8,7 @@
 #include <time.h>
 #include "utils.h"
 #include "fft.h"
-#include "wavelets.h"
+#include "swifft.h"
 
 //#define n 8
 //#define REP 10000
@@ -213,14 +213,14 @@ int main(int argc, char **argv){
 	//g[0]=0.5; g[1]=g[0];
 	g[0]=sqrt(2.)*0.5; g[1]=g[0];
 	h[0]=g[0];h[1]=-g[0];
-	prepare_swifft(N, h, 2, g, 2);
+	prepare_swifft(N, h, 2, g, 2, 1);
 
 	for (i=0; i<N; i++) vec_ans[i] = 0.0;
 	clock_gettime(CLOCK_REALTIME, &ts0); c0 = clock();
 
-	swifft_haar1(vec_in, vec_ans, N, 1);
+	swifft_haar1(vec_in, vec_ans, N);
 	for (i=1; i<REP; i++)
-		swifft_haar1(vec_in, vec_tmp, N, 1);
+		swifft_haar1(vec_in, vec_tmp, N);
 
 	clock_gettime(CLOCK_REALTIME, &ts1); c1 = clock();
 	print_times(ts0, ts1, c0, c1);
@@ -253,18 +253,18 @@ int main(int argc, char **argv){
 	g = (double*) calloc(N, sizeof(double));
 	g[0]=0.5; g[1]=g[0];
 	h[0]=g[0];h[1]=-g[0];
-	prepare_swifft(N, h, 2, g, 2);
+	prepare_swifft(N, h, 2, g, 2, 1);
 
 	for (i=0; i<N; i++) vec_ans[i] = 0.0;
 	clock_gettime(CLOCK_REALTIME, &ts0); c0 = clock();
 
 	//XXX
-	swifft_haar1_non_orthog(vec_in, vec_ans, N, 1);
-	//swifft_gen1(vec_in, vec_ans, N, 1);
+	swifft_haar1_non_orthog(vec_in, vec_ans, N);
+	//swifft_gen1(vec_in, vec_ans, N);
 	for (i=1; i<REP; i++)
 		//XXX
-		swifft_haar1_non_orthog(vec_in, vec_tmp, N, 1);
-		//swifft_gen1(vec_in, vec_tmp, N, 1);
+		swifft_haar1_non_orthog(vec_in, vec_tmp, N);
+		//swifft_gen1(vec_in, vec_tmp, N);
 
 	clock_gettime(CLOCK_REALTIME, &ts1); c1 = clock();
 	print_times(ts0, ts1, c0, c1);
@@ -301,14 +301,14 @@ int main(int argc, char **argv){
 	//g[0]=0.5; g[1]=g[0];
 	g[0]=sqrt(2.)*0.5; g[1]=g[0];
 	h[0]=g[0];h[1]=-g[0];
-	prepare_swifft(N, h, 2, g, 2);
+	prepare_swifft(N, h, 2, g, 2, 1);
 
 	for (i=0; i<N; i++) vec_ans[i] = 0.0;
 	clock_gettime(CLOCK_REALTIME, &ts0); c0 = clock();
 
-	swifft_haar2(vec_in, vec_ans, N, 1);
+	swifft_haar2(vec_in, vec_ans, N);
 	for (i=1; i<REP; i++)
-		swifft_haar2(vec_in, vec_tmp, N, 1);
+		swifft_haar2(vec_in, vec_tmp, N);
 
 	clock_gettime(CLOCK_REALTIME, &ts1); c1 = clock();
 	print_times(ts0, ts1, c0, c1);
@@ -343,14 +343,14 @@ int main(int argc, char **argv){
 
 	h[0]=-0.12940952255092145;h[1]=-0.22414386804185735;h[2]=0.83651630373746899;h[3]=-0.48296291314469025;
 	g[0]=0.48296291314469025;g[1]=0.83651630373746899;g[2]=0.22414386804185735;g[3]=-0.12940952255092145;
-	prepare_swifft(N, h, 4, g, 4);
+	prepare_swifft(N, h, 4, g, 4, 2);
 
 	for (i=0; i<N; i++) vec_ans[i] = 0.0;
 	clock_gettime(CLOCK_REALTIME, &ts0); c0 = clock();
 
-	swifft_gen1(vec_in, vec_ans, N, 2);
+	swifft_gen1(vec_in, vec_ans, N);
 	for (i=1; i<REP; i++)
-		swifft_gen1(vec_in, vec_tmp, N, 2);
+		swifft_gen1(vec_in, vec_tmp, N);
 
 	clock_gettime(CLOCK_REALTIME, &ts1); c1 = clock();
 	print_times(ts0, ts1, c0, c1);
@@ -394,14 +394,14 @@ int main(int argc, char **argv){
 	g[3]=-0.13501102001039084;
 	g[4]=-0.085441273882241486;
 	g[5]=0.035226291882100656;
-	prepare_swifft(N, h, 6, g, 6);
+	prepare_swifft(N, h, 6, g, 6, 2);
 
 	for (i=0; i<N; i++) vec_ans[i] = 0.0;
 	clock_gettime(CLOCK_REALTIME, &ts0); c0 = clock();
 
-	swifft_gen1(vec_in, vec_ans, N, 2);
+	swifft_gen1(vec_in, vec_ans, N);
 	for (i=1; i<REP; i++)
-		swifft_gen1(vec_in, vec_tmp, N, 2);
+		swifft_gen1(vec_in, vec_tmp, N);
 
 	clock_gettime(CLOCK_REALTIME, &ts1); c1 = clock();
 	print_times(ts0, ts1, c0, c1);
