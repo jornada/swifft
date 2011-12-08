@@ -12,53 +12,43 @@ inline double S(double x){
 }
 
 //! Creates the test signal
-// 0 (default): linear signal (saw tooth)
-// 1 : sin
-// 2 : sin + spike
-// 3 : white noise
-// 4 : white noise
+// 0 (default): random
+// 1 : lin. comb. of exp's
+// 2 : exp + noise
+// 3 : sinc
+// 4 : gaussian
+// 5 : audio
 void create_signal(complex double *vec, int sz, int kind){
-	int i;
-	static int last_wn_sz=0;   //last size used for computing white noise
-	static double complex *last_wn=NULL; //last white noise
-	fftw_plan p;
+	int i, sz2;
+	double tmp;
 
+	sz2 = sz>>1;
 	switch (kind){
 		case 1:
-			for (i=0; i<sz; i++) vec[i] = sin(i*M_PI*0.075);
+			// sum of exp's -- tiled version
+			for (i=0; i<sz; i++) vec[i] = exp(I*i*M_PI*0.05) + exp(I*i*M_PI*0.075);
 			break;
 		case 2:
+			// exp + noise -- tiled version
 			srand(0);
-			for (i=0; i<sz; i++) vec[i] = sin(i*M_PI*0.05) + (rand()%(2001) - 1000)*1e-4;
-			vec[sz>>1]=-2;
+			for (i=0; i<sz; i++) vec[i] = exp(i*M_PI*0.05) + (rand()%(2001) - 1000)*1e-4;
 			break;
 		case 3:
-			srand(0);
-			for (i=0; i<sz; i++) vec[i] = rand()%2001 - 1000;
+			// sinc -- rescaled version
+			tmp = 100./(double) sz;
+			for (i=0; i<sz; i++) vec[i] = sin(tmp*(i-sz+1e-4)) / (tmp*(i-sz+1e-4));
 			break;
 		case 4:
-			if (last_wn_sz != sz) {
-				if (last_wn) {
-					srand(0);
-					free(last_wn);
-				}
-				last_wn = (double complex*) malloc(sizeof(double complex)*sz);
-
-				p = fftw_create_plan(sz, FFTW_FORWARD, FFTW_ESTIMATE);
-				//first, use vec as temporary vector to store FFT of white noise
-				for (i=0; i<sz; i++) vec[i] = 10 + (rand()%1000)*1e-4;
-				//for (i=0; i<sz; i++) last_wn[i] += (rand()%1000)*1000;
-				fftw_one(p, (fftw_complex*) vec, (fftw_complex*) last_wn);
-				fftw_destroy_plan(p);
-
-				//for (i=0; i<sz; i++) last_wn[i] += (rand()%1000)*1000;
-
-				last_wn_sz = sz;
-			}
-			memcpy(vec, last_wn, sz*sizeof(double complex));
+			// gaussian -- rescalled version
+			tmp = 
+			for (i=0; i<sz; i++) vec[i] = exp(-tmp*pow(i-sz2,2));
 			break;
+		case 5:
+			// audio -- fixed length
 		default:
-			for (i=0; i<sz; i++) vec[i] = i;
+			srand(0);
+			for (i=0; i<sz; i++) vec[i] = exp(-) rand()%2001 - 1000;
+			break;
 	}
 }
 

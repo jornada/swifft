@@ -87,6 +87,7 @@ int main(int argc, char **argv){
 	double *h,*g, diff;
 	struct timespec ts0, ts1;
 	clock_t c0, c1;
+	int depth=3;
 	fftw_plan p;
 
 	N = pow(2, n);
@@ -94,7 +95,6 @@ int main(int argc, char **argv){
 	ALLOC(vec_in);
 	ALLOC(vec_tmp);
 	ALLOC(vec_ans);
-
 	// initialize wavelet filter banks
 	h = (double*) malloc(N*sizeof(double));
 	g = (double*) malloc(N*sizeof(double));
@@ -223,6 +223,46 @@ int main(int argc, char **argv){
 	print_times(ts0, ts1, c0, c1);
 	free_fft();
 
+	/************************************
+	*      Exact Wavelet-based FFT      *
+	*************************************/
+
+	printf("\n# Exact Wavelet-based FFT (via Haar Wavelet)\n");
+
+	//wavelet filter
+	memset(h, 0, N*sizeof(double));
+	memset(g, 0, N*sizeof(double));
+	g[0]=sqrt(2.)*0.5; g[1]=g[0];
+	h[0]=g[0];h[1]=-g[0];
+	prepare_swifft(N, h, 2, g, 2, depth);
+
+	create_signal(vec_in, N, SIGNAL);
+	for (i=0; i<N; i++) vec_ans[i] = 0.0;
+	clock_gettime(CLOCK_REALTIME, &ts0); c0 = clock();
+
+	swifft_full(vec_in, vec_ans);
+	for (i=1; i<REP; i++)
+		swifft_full(vec_in, vec_tmp);
+
+	clock_gettime(CLOCK_REALTIME, &ts1); c1 = clock();
+	print_times(ts0, ts1, c0, c1);
+	free_swifft();
+
+	#ifdef PRINT
+	printf("\n\tAnswer:\n");
+	print_cvec(vec_ans, N);
+	#endif
+
+	ifft(vec_ans, vec_tmp, N);
+	#ifdef OUTPUT
+	write_cvec(vec_tmp, N, "inv_haar1.dat");
+	write_cvec(vec_ans, N, "freq_haar1.dat");
+	#endif
+
+	create_signal(vec_in, N, SIGNAL);
+	diff = diff_norm(vec_tmp, vec_in, N);
+	printf("\tError (2-norm): %lf\n", diff);
+
 
 	/******************************
 	*    SWIFFT - Haar Wavelet 1  *
@@ -230,21 +270,20 @@ int main(int argc, char **argv){
 
 	printf("\n# Haar Wavelet - Alg. #1\n");
 
-	create_signal(vec_in, N, SIGNAL);
-
 	//wavelet filter
 	memset(h, 0, N*sizeof(double));
 	memset(g, 0, N*sizeof(double));
 	g[0]=sqrt(2.)*0.5; g[1]=g[0];
 	h[0]=g[0];h[1]=-g[0];
-	prepare_swifft(N, h, 2, g, 2, 1);
+	prepare_swifft(N, h, 2, g, 2, depth);
 
+	create_signal(vec_in, N, SIGNAL);
 	for (i=0; i<N; i++) vec_ans[i] = 0.0;
 	clock_gettime(CLOCK_REALTIME, &ts0); c0 = clock();
 
-	swifft_haar1(vec_in, vec_ans, N);
+	swifft_haar1(vec_in, vec_ans);
 	for (i=1; i<REP; i++)
-		swifft_haar1(vec_in, vec_tmp, N);
+		swifft_haar1(vec_in, vec_tmp);
 
 	clock_gettime(CLOCK_REALTIME, &ts1); c1 = clock();
 	print_times(ts0, ts1, c0, c1);
@@ -272,25 +311,20 @@ int main(int argc, char **argv){
 
 	printf("\n# Haar Wavelet - Alg. #1 - Non-orthog\n");
 
-	create_signal(vec_in, N, SIGNAL);
-
 	//wavelet filter	
 	memset(h, 0, N*sizeof(double));
 	memset(g, 0, N*sizeof(double));
 	g[0]=0.5; g[1]=g[0];
 	h[0]=g[0];h[1]=-g[0];
-	prepare_swifft(N, h, 2, g, 2, 1);
+	prepare_swifft(N, h, 2, g, 2, depth);
 
+	create_signal(vec_in, N, SIGNAL);
 	for (i=0; i<N; i++) vec_ans[i] = 0.0;
 	clock_gettime(CLOCK_REALTIME, &ts0); c0 = clock();
 
-	//XXX
-	swifft_haar1_non_orthog(vec_in, vec_ans, N);
-	//swifft_gen1(vec_in, vec_ans, N);
+	swifft_haar1_non_orthog(vec_in, vec_ans);
 	for (i=1; i<REP; i++)
-		//XXX
-		swifft_haar1_non_orthog(vec_in, vec_tmp, N);
-		//swifft_gen1(vec_in, vec_tmp, N);
+		swifft_haar1_non_orthog(vec_in, vec_tmp);
 
 	clock_gettime(CLOCK_REALTIME, &ts1); c1 = clock();
 	print_times(ts0, ts1, c0, c1);
@@ -332,9 +366,9 @@ int main(int argc, char **argv){
 	for (i=0; i<N; i++) vec_ans[i] = 0.0;
 	clock_gettime(CLOCK_REALTIME, &ts0); c0 = clock();
 
-	swifft_haar2(vec_in, vec_ans, N);
+	swifft_haar2(vec_in, vec_ans);
 	for (i=1; i<REP; i++)
-		swifft_haar2(vec_in, vec_tmp, N);
+		swifft_haar2(vec_in, vec_tmp);
 
 	clock_gettime(CLOCK_REALTIME, &ts1); c1 = clock();
 	print_times(ts0, ts1, c0, c1);
@@ -364,16 +398,16 @@ int main(int argc, char **argv){
 	printf("\n# DB2 Wavelet - Alg. #1\n");
 
 	//wavelet filter	
-	load_filters(h, g, N, "db2.filter");
-	prepare_swifft(N, h, 4, g, 4, 2);
+	load_filters(h, g, N, "filters/db2.filter");
+	prepare_swifft(N, h, 4, g, 4, depth);
 
 	create_signal(vec_in, N, SIGNAL);
 	for (i=0; i<N; i++) vec_ans[i] = 0.0;
 	clock_gettime(CLOCK_REALTIME, &ts0); c0 = clock();
 
-	swifft_gen1(vec_in, vec_ans, N);
+	swifft_gen1(vec_in, vec_ans);
 	for (i=1; i<REP; i++)
-		swifft_gen1(vec_in, vec_tmp, N);
+		swifft_gen1(vec_in, vec_tmp);
 
 	clock_gettime(CLOCK_REALTIME, &ts1); c1 = clock();
 	print_times(ts0, ts1, c0, c1);
@@ -401,16 +435,16 @@ int main(int argc, char **argv){
 	printf("\n# DB3 Wavelet - Alg. #1\n");
 
 	//wavelet filter	
-	load_filters(h, g, N, "db3.filter");
-	prepare_swifft(N, h, 6, g, 6, 2);
+	load_filters(h, g, N, "filters/db3.filter");
+	prepare_swifft(N, h, 6, g, 6, depth);
 
 	create_signal(vec_in, N, SIGNAL);
 	for (i=0; i<N; i++) vec_ans[i] = 0.0;
 	clock_gettime(CLOCK_REALTIME, &ts0); c0 = clock();
 
-	swifft_gen1(vec_in, vec_ans, N);
+	swifft_gen1(vec_in, vec_ans);
 	for (i=1; i<REP; i++)
-		swifft_gen1(vec_in, vec_tmp, N);
+		swifft_gen1(vec_in, vec_tmp);
 
 	clock_gettime(CLOCK_REALTIME, &ts1); c1 = clock();
 	print_times(ts0, ts1, c0, c1);
@@ -440,16 +474,16 @@ int main(int argc, char **argv){
 	printf("\n# DB4 Wavelet - Alg. #1\n");
 
 	//wavelet filter	
-	load_filters(h, g, N, "db4.filter");
-	prepare_swifft(N, h, 8, g, 8, 2);
+	load_filters(h, g, N, "filters/db4.filter");
+	prepare_swifft(N, h, 8, g, 8, depth);
 
 	create_signal(vec_in, N, SIGNAL);
 	for (i=0; i<N; i++) vec_ans[i] = 0.0;
 	clock_gettime(CLOCK_REALTIME, &ts0); c0 = clock();
 
-	swifft_gen1(vec_in, vec_ans, N);
+	swifft_gen1(vec_in, vec_ans);
 	for (i=1; i<REP; i++)
-		swifft_gen1(vec_in, vec_tmp, N);
+		swifft_gen1(vec_in, vec_tmp);
 
 	clock_gettime(CLOCK_REALTIME, &ts1); c1 = clock();
 	print_times(ts0, ts1, c0, c1);
@@ -478,16 +512,16 @@ int main(int argc, char **argv){
 	printf("\n# DB5 Wavelet - Alg. #1\n");
 
 	//wavelet filter	
-	load_filters(h, g, N, "db5.filter");
-	prepare_swifft(N, h, 10, g, 10, 2);
+	load_filters(h, g, N, "filters/db5.filter");
+	prepare_swifft(N, h, 10, g, 10, depth);
 
 	create_signal(vec_in, N, SIGNAL);
 	for (i=0; i<N; i++) vec_ans[i] = 0.0;
 	clock_gettime(CLOCK_REALTIME, &ts0); c0 = clock();
 
-	swifft_gen1(vec_in, vec_ans, N);
+	swifft_gen1(vec_in, vec_ans);
 	for (i=1; i<REP; i++)
-		swifft_gen1(vec_in, vec_tmp, N);
+		swifft_gen1(vec_in, vec_tmp);
 
 	clock_gettime(CLOCK_REALTIME, &ts1); c1 = clock();
 	print_times(ts0, ts1, c0, c1);
