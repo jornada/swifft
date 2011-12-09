@@ -6,6 +6,7 @@
 #include <time.h>
 #include "utils.h"
 #include <fftw.h>
+#include <assert.h>
 
 inline double S(double x){
 	if (fabs(x)<1e-10) return 0; else return x;
@@ -21,17 +22,19 @@ inline double S(double x){
 void create_signal(complex double *vec, int sz, int kind){
 	int i, sz2;
 	double tmp;
+	double *buf;
+	FILE *fin;
 
 	sz2 = sz>>1;
 	switch (kind){
 		case 1:
 			// sum of exp's -- tiled version
-			for (i=0; i<sz; i++) vec[i] = exp(I*i*M_PI*0.05) + exp(I*i*M_PI*0.075);
+			for (i=0; i<sz; i++) vec[i] = cexp(I*i*M_PI*0.05) + exp(I*i*M_PI*0.075);
 			break;
 		case 2:
 			// exp + noise -- tiled version
 			srand(0);
-			for (i=0; i<sz; i++) vec[i] = exp(i*M_PI*0.05) + (rand()%(2001) - 1000)*1e-4;
+			for (i=0; i<sz; i++) vec[i] = cexp(I*i*M_PI*0.05) + (rand()%(2001) - 1000)*1e-4;
 			break;
 		case 3:
 			// sinc -- rescaled version
@@ -40,14 +43,27 @@ void create_signal(complex double *vec, int sz, int kind){
 			break;
 		case 4:
 			// gaussian -- rescalled version
-			tmp = 
 			for (i=0; i<sz; i++) vec[i] = exp(-tmp*pow(i-sz2,2));
 			break;
 		case 5:
 			// audio -- fixed length
+			assert(sizeof(double)==8);
+			fin = fopen("tests/music.dat", "rb");
+			if (!fin) {
+				printf("Can't open tests/music.dat. Make sure the file is there!\n");
+				return;
+			}
+			buf = malloc( (1<<17)*sizeof(double) );
+			//jump initial noisy part
+			fread(buf, sizeof(double), (1<<12) , fin);
+			fread(buf, sizeof(double), (1<<17) , fin);
+			fclose(fin);
+			for (i=0; i<sz; i++) vec[i] = (double complex) buf[i%(1<<17)];
+			free(buf);
+			break;
 		default:
 			srand(0);
-			for (i=0; i<sz; i++) vec[i] = exp(-) rand()%2001 - 1000;
+			for (i=0; i<sz; i++) vec[i] = rand()%2001 - 1000;
 			break;
 	}
 }
@@ -88,7 +104,8 @@ void norm(double complex *a, int sz){
 //norm-2 of the diff between 2 vectors
 double diff_norm(double complex *a, double complex *b, int sz){
 	int i;
-	double complex *v, res;
+	double complex *v;
+	double res;
 
 	v = (double complex*) malloc(sz*sizeof(double complex));
 	for (i=0; i<sz; i++){
@@ -98,7 +115,7 @@ double diff_norm(double complex *a, double complex *b, int sz){
 	res = vec_norm(v, sz);
 	free (v);
 	//return vec_norm(a, sz);
-	return creal(res)/vec_norm(b,sz);
+	return res/vec_norm(b,sz);
 }
 
 void print_vec(double *vec, int sz){
