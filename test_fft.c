@@ -30,7 +30,7 @@
 #include "fft.h"
 #include "utils.h"
 
-#define n 16
+#define n 23
 #define REP 1
 
 int main(int argc, char **argv){
@@ -45,10 +45,10 @@ int main(int argc, char **argv){
 	vec_in  = (double complex*) malloc(sizeof(double complex)*N);
 	vec_out = (double complex*) malloc(sizeof(double complex)*N);
 
-	printf("Testing FFTm vector size N=%lli\n",N);
+	printf("Testing FFT, vector size N=%lli\n",N);
 	printf("\n");
 
-	printf("Testing recursive FFT\n");
+	printf("Testing memory-inefficient recursive FFT\n");
 
 	//sample input vector
 	for (i=0; i<N; i++) vec_in[i] = i;
@@ -73,7 +73,7 @@ int main(int argc, char **argv){
 	print_cvec(vec_out, N);
 	#endif
 
-	printf("Testing out-of-place recursive FFT\n");
+	printf("Testing recursive FFT w/o memcpy\n");
 
 	//sample input vector
 	for (i=0; i<N; i++) vec_in[i] = i;

@@ -51,6 +51,8 @@ void free_fft(){
 	free(w);
 }
 
+//! This is the naive FFT that copies the input vector each time it has to
+//! apply the permutation matrix
 void fft(double complex *in, double complex *out, int sz){
 	int i,j, sz2;
 	double complex aa, bb;
@@ -92,6 +94,8 @@ void fft(double complex *in, double complex *out, int sz){
 		
 }
 
+//! This is the version of the FFT that doesn't copy the input vector,
+//! but deals with non-continuous memory
 void fft2(double complex *in, double complex *out, int sz){
 	//int i,j, sz2;
 
@@ -217,6 +221,7 @@ void bitrev(double complex *real, unsigned int logN)
 }
 // end of bitrev function
 
+//! This is the version with bit reversion
 void fft3(double complex *in, double complex *out, int sz){
 
 	bitrev(in, round(log2(sz)));
