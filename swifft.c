@@ -69,7 +69,7 @@ void full_fft(double complex *in, double complex *out, int sz){
 
 //! Called by swifft routines when the PRE_WAVELET flag is on.
 //! Tailored for Haar filters.
-void trunc_DFT_gen(double complex *vec, int sz_){
+void trunc_DWT_gen(double complex *vec, int sz_){
 	int iter;
 	int i;
 	int sz, sz2;
@@ -111,7 +111,7 @@ void trunc_DFT_gen(double complex *vec, int sz_){
 
 //! Called by swifft routines when the PRE_WAVELET flag is on.
 //! Tailored for Haar filters.
-void trunc_DFT_haar(double complex *vec, int sz_){
+void trunc_DWT_haar(double complex *vec, int sz_){
 	int i;
 
 #ifndef LOW_COMM_HAAR
@@ -153,7 +153,7 @@ void trunc_DFT_haar(double complex *vec, int sz_){
 
 //! Called by swifft routines when the PRE_WAVELET flag is on.
 //! Tailored for non-orthogonal Haar filters.
-void trunc_DFT_haar_non_orthog(double complex *vec, int sz_){
+void trunc_DWT_haar_non_orthog(double complex *vec, int sz_){
 	int i;
 
 #ifndef LOW_COMM_HAAR
@@ -419,7 +419,7 @@ void rec_swifft_gen1(double complex *in, double complex *out, int sz){
 //! This routine takes any input filter.
 void swifft_gen1(double complex *in, double complex *out){
 #ifdef PRE_WAVELET
-	trunc_DFT_gen(in, swifft_sz);
+	trunc_DWT_gen(in, swifft_sz);
 #endif
 	rec_swifft_gen1(in, out, swifft_sz);
 }
@@ -473,7 +473,7 @@ void rec_swifft_haar1(double complex *in, double complex *out, int sz){
 //! This is equivalent to doing the FFT on a under-sampled signal, then resample it
 void swifft_haar1(double complex *in, double complex *out){
 #ifdef PRE_WAVELET
-	trunc_DFT_haar(in, swifft_sz);
+	trunc_DWT_haar(in, swifft_sz);
 #endif
 	rec_swifft_haar1(in, out, swifft_sz);
 }
@@ -529,7 +529,7 @@ void rec_swifft_haar1_non_orthog(double complex *in, double complex *out, int sz
 //! when doing the wavelet transform.
 void swifft_haar1_non_orthog(double complex *in, double complex *out){
 #ifdef PRE_WAVELET
-	trunc_DFT_haar_non_orthog(in, swifft_sz);
+	trunc_DWT_haar_non_orthog(in, swifft_sz);
 #endif
 	rec_swifft_haar1_non_orthog(in, out, swifft_sz);
 }

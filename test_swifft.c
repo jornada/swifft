@@ -41,13 +41,13 @@
 //#define GB_FFT
 //#define HAAR1
 #define HAAR1_NON_ORTHOG
-#define HAAR2
+//#define HAAR2
 #define DB2
 //#define DB3
 #define DB4
 //#define DB5
-//#define DB6
-//#define DB10
+#define DB6
+#define DB10
 
 void under_sample(double complex *vec, int sz){
 	int i, sz2;
@@ -78,46 +78,47 @@ void ifft(double complex *vec_in, double complex *vec_out, int sz){
 	for (i=0; i<sz; i++) vec_out[i] /= sz;
 }
 
-void finalize_test(double complex *v_ans, double complex *v_tmp, double complex *v_in, int sz, char *in_str){
+void finalize_test(double complex *v_ans, double complex *v_approx, double complex *v_tmp, double complex *v_in, int sz, char *in_str){
 	double diff;
 	char tmp_str[128];
 
-	#ifndef FAST
-	#ifdef PRINT
+#ifndef FAST
+#ifdef PRINT
 	printf("\n\tAnswer:\n");
-	print_cvec(v_ans, sz);
-	#endif
+	print_cvec(v_approx, sz);
+#endif
 
-	ifft(v_ans, v_tmp, sz);
-	#ifdef OUTPUT
+#ifdef OUTPUT
+	ifft(v_approx, v_tmp, sz);
 	sprintf(tmp_str, "inv_%s.dat", in_str);
 	write_cvec(v_tmp, sz, tmp_str);
 	sprintf(tmp_str, "freq_%s.dat", in_str);
-	write_cvec(v_ans, sz, tmp_str);
-	#endif
-
+	write_cvec(v_approx, sz, tmp_str);
 	create_signal(v_in, sz, SIGNAL);
-	diff = diff_norm(v_tmp, v_in, sz);
+#endif
+
+	diff = diff_norm(v_approx, v_ans, sz);
 	printf("\tError (2-norm): %lf\n", diff);
-	#endif
+#endif
 }
+	
+#define ALLOC(x) x = (double complex*) malloc(sizeof(double complex)*N)
 
 //! Test various implementations, but all with the same pruning depth
 void swifft_test1(int n, int REP){
 	int N, i;
-	double complex *vec_in;
-	double complex *vec_tmp;
-	double complex *vec_ans;
+	double complex *vec_in, *vec_tmp;
+	double complex *vec_approx, *vec_ans;
 	double *h,*g, diff;
 	struct timespec ts0, ts1;
 	clock_t c0, c1;
-	int depth=1;
+	int depth=2;
 	fftw_plan p;
 
 	N = pow(2, n);
-	#define ALLOC(x) x = (double complex*) malloc(sizeof(double complex)*N);
 	ALLOC(vec_in);
 	ALLOC(vec_tmp);
+	ALLOC(vec_approx);
 	ALLOC(vec_ans);
 	// initialize wavelet filter banks
 	h = (double*) malloc(N*sizeof(double));
@@ -153,7 +154,7 @@ void swifft_test1(int n, int REP){
 	clock_gettime(CLOCK_REALTIME, &ts1); c1 = clock();
 	print_times(ts0, ts1, c0, c1);
 	fftw_destroy_plan(p);
-	finalize_test(vec_ans, vec_tmp, vec_in, N, "fftw");
+	finalize_test(vec_ans, vec_ans, vec_tmp, vec_in, N, "fftw");
 
 #ifdef FFFT
 	/********************************************
@@ -167,14 +168,15 @@ void swifft_test1(int n, int REP){
 	prepare_fft(N);
 	clock_gettime(CLOCK_REALTIME, &ts0); c0 = clock();
 
-	fft3(vec_in, vec_ans, N);
+	fft3(vec_in, vec_approx, N);
 	for (i=1; i<REP; i++)
 		fft3(vec_in, vec_tmp, N);
 
 	clock_gettime(CLOCK_REALTIME, &ts1); c1 = clock();
 	print_times(ts0, ts1, c0, c1);
 	free_fft();
-	//finalize_test(vec_ans, vec_tmp, vec_in, N, "gb_fft");
+	//I know it's right, and I just want the time info
+	//finalize_test(vec_ans, vec_approx, vec_tmp, vec_in, N, "gb_fft");
 #endif
 
 #ifdef GB_FFT
@@ -192,17 +194,18 @@ void swifft_test1(int n, int REP){
 	prepare_swifft(N, h, 2, g, 2, depth);
 
 	create_signal(vec_in, N, SIGNAL);
-	for (i=0; i<N; i++) vec_ans[i] = 0.0;
+	for (i=0; i<N; i++) vec_approx[i] = 0.0;
 	clock_gettime(CLOCK_REALTIME, &ts0); c0 = clock();
 
-	swifft_full(vec_in, vec_ans);
+	swifft_full(vec_in, vec_approx);
 	for (i=1; i<REP; i++)
 		swifft_full(vec_in, vec_tmp);
 
 	clock_gettime(CLOCK_REALTIME, &ts1); c1 = clock();
 	print_times(ts0, ts1, c0, c1);
 	free_swifft();
-	//finalize_test(vec_ans, vec_tmp, vec_in, N, "gb_fft");
+	//I know it's right, and I just want the time info
+	//finalize_test(vec_ans, vec_approx, vec_tmp, vec_in, N, "gb_fft");
 #endif
 
 #ifdef HAAR1
@@ -220,17 +223,17 @@ void swifft_test1(int n, int REP){
 	prepare_swifft(N, h, 2, g, 2, depth);
 
 	create_signal(vec_in, N, SIGNAL);
-	for (i=0; i<N; i++) vec_ans[i] = 0.0;
+	for (i=0; i<N; i++) vec_approx[i] = 0.0;
 	clock_gettime(CLOCK_REALTIME, &ts0); c0 = clock();
 
-	swifft_haar1(vec_in, vec_ans);
+	swifft_haar1(vec_in, vec_approx);
 	for (i=1; i<REP; i++)
 		swifft_haar1(vec_in, vec_tmp);
 
 	clock_gettime(CLOCK_REALTIME, &ts1); c1 = clock();
 	print_times(ts0, ts1, c0, c1);
 	free_swifft();
-	finalize_test(vec_ans, vec_tmp, vec_in, N, "haar1");
+	finalize_test(vec_ans, vec_approx, vec_tmp, vec_in, N, "haar1");
 #endif
 
 #ifdef HAAR1_NON_ORTHOG
@@ -248,17 +251,17 @@ void swifft_test1(int n, int REP){
 	prepare_swifft(N, h, 2, g, 2, depth);
 
 	create_signal(vec_in, N, SIGNAL);
-	for (i=0; i<N; i++) vec_ans[i] = 0.0;
+	for (i=0; i<N; i++) vec_approx[i] = 0.0;
 	clock_gettime(CLOCK_REALTIME, &ts0); c0 = clock();
 
-	swifft_haar1_non_orthog(vec_in, vec_ans);
+	swifft_haar1_non_orthog(vec_in, vec_approx);
 	for (i=1; i<REP; i++)
 		swifft_haar1_non_orthog(vec_in, vec_tmp);
 
 	clock_gettime(CLOCK_REALTIME, &ts1); c1 = clock();
 	print_times(ts0, ts1, c0, c1);
 	free_swifft();
-	finalize_test(vec_ans, vec_tmp, vec_in, N, "haar1_non_orthog");
+	finalize_test(vec_ans, vec_approx, vec_tmp, vec_in, N, "haar1_non_orthog");
 #endif
 
 #ifdef HAAR2
@@ -276,17 +279,17 @@ void swifft_test1(int n, int REP){
 	prepare_swifft(N, h, 2, g, 2, 1);
 
 	create_signal(vec_in, N, SIGNAL);
-	for (i=0; i<N; i++) vec_ans[i] = 0.0;
+	for (i=0; i<N; i++) vec_approx[i] = 0.0;
 	clock_gettime(CLOCK_REALTIME, &ts0); c0 = clock();
 
-	swifft_haar2(vec_in, vec_ans);
+	swifft_haar2(vec_in, vec_approx);
 	for (i=1; i<REP; i++)
 		swifft_haar2(vec_in, vec_tmp);
 
 	clock_gettime(CLOCK_REALTIME, &ts1); c1 = clock();
 	print_times(ts0, ts1, c0, c1);
 	free_swifft();
-	finalize_test(vec_ans, vec_tmp, vec_in, N, "haar2");
+	finalize_test(vec_ans, vec_approx, vec_tmp, vec_in, N, "haar2");
 #endif
 
 #ifdef DB2
@@ -301,17 +304,17 @@ void swifft_test1(int n, int REP){
 	prepare_swifft(N, h, 4, g, 4, depth);
 
 	create_signal(vec_in, N, SIGNAL);
-	for (i=0; i<N; i++) vec_ans[i] = 0.0;
+	for (i=0; i<N; i++) vec_approx[i] = 0.0;
 	clock_gettime(CLOCK_REALTIME, &ts0); c0 = clock();
 
-	swifft_gen1(vec_in, vec_ans);
+	swifft_gen1(vec_in, vec_approx);
 	for (i=1; i<REP; i++)
 		swifft_gen1(vec_in, vec_tmp);
 
 	clock_gettime(CLOCK_REALTIME, &ts1); c1 = clock();
 	print_times(ts0, ts1, c0, c1);
 	free_swifft();
-	finalize_test(vec_ans, vec_tmp, vec_in, N, "db2");
+	finalize_test(vec_ans, vec_approx, vec_tmp, vec_in, N, "db2");
 #endif
 
 #ifdef DB3
@@ -326,17 +329,17 @@ void swifft_test1(int n, int REP){
 	prepare_swifft(N, h, 6, g, 6, depth);
 
 	create_signal(vec_in, N, SIGNAL);
-	for (i=0; i<N; i++) vec_ans[i] = 0.0;
+	for (i=0; i<N; i++) vec_approx[i] = 0.0;
 	clock_gettime(CLOCK_REALTIME, &ts0); c0 = clock();
 
-	swifft_gen1(vec_in, vec_ans);
+	swifft_gen1(vec_in, vec_approx);
 	for (i=1; i<REP; i++)
 		swifft_gen1(vec_in, vec_tmp);
 
 	clock_gettime(CLOCK_REALTIME, &ts1); c1 = clock();
 	print_times(ts0, ts1, c0, c1);
 	free_swifft();
-	finalize_test(vec_ans, vec_tmp, vec_in, N, "db3");
+	finalize_test(vec_ans, vec_approx, vec_tmp, vec_in, N, "db3");
 #endif
 
 #ifdef DB4
@@ -351,17 +354,17 @@ void swifft_test1(int n, int REP){
 	prepare_swifft(N, h, 8, g, 8, depth);
 
 	create_signal(vec_in, N, SIGNAL);
-	for (i=0; i<N; i++) vec_ans[i] = 0.0;
+	for (i=0; i<N; i++) vec_approx[i] = 0.0;
 	clock_gettime(CLOCK_REALTIME, &ts0); c0 = clock();
 
-	swifft_gen1(vec_in, vec_ans);
+	swifft_gen1(vec_in, vec_approx);
 	for (i=1; i<REP; i++)
 		swifft_gen1(vec_in, vec_tmp);
 
 	clock_gettime(CLOCK_REALTIME, &ts1); c1 = clock();
 	print_times(ts0, ts1, c0, c1);
 	free_swifft();
-	finalize_test(vec_ans, vec_tmp, vec_in, N, "db4");
+	finalize_test(vec_ans, vec_approx, vec_tmp, vec_in, N, "db4");
 #endif
 
 #ifdef DB5
@@ -376,17 +379,17 @@ void swifft_test1(int n, int REP){
 	prepare_swifft(N, h, 10, g, 10, depth);
 
 	create_signal(vec_in, N, SIGNAL);
-	for (i=0; i<N; i++) vec_ans[i] = 0.0;
+	for (i=0; i<N; i++) vec_approx[i] = 0.0;
 	clock_gettime(CLOCK_REALTIME, &ts0); c0 = clock();
 
-	swifft_gen1(vec_in, vec_ans);
+	swifft_gen1(vec_in, vec_approx);
 	for (i=1; i<REP; i++)
 		swifft_gen1(vec_in, vec_tmp);
 
 	clock_gettime(CLOCK_REALTIME, &ts1); c1 = clock();
 	print_times(ts0, ts1, c0, c1);
 	free_swifft();
-	finalize_test(vec_ans, vec_tmp, vec_in, N, "db5");
+	finalize_test(vec_ans, vec_approx, vec_tmp, vec_in, N, "db5");
 #endif
 
 #ifdef DB6	
@@ -401,17 +404,17 @@ void swifft_test1(int n, int REP){
 	prepare_swifft(N, h, 10, g, 10, depth);
 
 	create_signal(vec_in, N, SIGNAL);
-	for (i=0; i<N; i++) vec_ans[i] = 0.0;
+	for (i=0; i<N; i++) vec_approx[i] = 0.0;
 	clock_gettime(CLOCK_REALTIME, &ts0); c0 = clock();
 
-	swifft_gen1(vec_in, vec_ans);
+	swifft_gen1(vec_in, vec_approx);
 	for (i=1; i<REP; i++)
 		swifft_gen1(vec_in, vec_tmp);
 
 	clock_gettime(CLOCK_REALTIME, &ts1); c1 = clock();
 	print_times(ts0, ts1, c0, c1);
 	free_swifft();
-	finalize_test(vec_ans, vec_tmp, vec_in, N, "db6");
+	finalize_test(vec_ans, vec_approx, vec_tmp, vec_in, N, "db6");
 #endif
 
 	/*******************************/
@@ -420,15 +423,15 @@ void swifft_test1(int n, int REP){
 	free(g);
 	free(vec_in);
 	free(vec_tmp);
+	free(vec_approx);
 	free(vec_ans);
 }
 
 //! Test some implementations using different pruning depths
 void swifft_test2(int n, int REP){
 	int N, i;
-	double complex *vec_in;
-	double complex *vec_tmp;
-	double complex *vec_ans;
+	double complex *vec_in, *vec_tmp;
+	double complex *vec_approx, *vec_ans;
 	double *h,*g, diff;
 	struct timespec ts0, ts1;
 	clock_t c0, c1;
@@ -436,10 +439,9 @@ void swifft_test2(int n, int REP){
 	int depth;
 
 	N = pow(2, n);
-	#define ALLOC(x) x = (double complex*) malloc(sizeof(double complex)*N);
 	ALLOC(vec_in);
 	ALLOC(vec_tmp);
-	ALLOC(vec_ans);
+	ALLOC(vec_approx);
 	// initialize wavelet filter banks
 	h = (double*) malloc(N*sizeof(double));
 	g = (double*) malloc(N*sizeof(double));
@@ -473,7 +475,7 @@ void swifft_test2(int n, int REP){
 	clock_gettime(CLOCK_REALTIME, &ts1); c1 = clock();
 	print_times(ts0, ts1, c0, c1);
 	fftw_destroy_plan(p);
-	finalize_test(vec_ans, vec_tmp, vec_in, N, "fftw");
+	finalize_test(vec_ans, vec_ans, vec_tmp, vec_in, N, "fftw");
 
 	for (depth=1; depth<5; depth++){
 		printf("\n\nDEPTH = %d\n\n",depth);
@@ -492,17 +494,17 @@ void swifft_test2(int n, int REP){
 		prepare_swifft(N, h, 2, g, 2, depth);
 
 		create_signal(vec_in, N, SIGNAL);
-		for (i=0; i<N; i++) vec_ans[i] = 0.0;
+		for (i=0; i<N; i++) vec_approx[i] = 0.0;
 		clock_gettime(CLOCK_REALTIME, &ts0); c0 = clock();
 
-		swifft_haar1_non_orthog(vec_in, vec_ans);
+		swifft_haar1_non_orthog(vec_in, vec_approx);
 		for (i=1; i<REP; i++)
 			swifft_haar1_non_orthog(vec_in, vec_tmp);
 
 		clock_gettime(CLOCK_REALTIME, &ts1); c1 = clock();
 		print_times(ts0, ts1, c0, c1);
 		free_swifft();
-		finalize_test(vec_ans, vec_tmp, vec_in, N, "haar1_non_orthog");
+		finalize_test(vec_ans, vec_approx, vec_tmp, vec_in, N, "haar1_non_orthog");
 	
 	
 		/*******************************
@@ -516,17 +518,17 @@ void swifft_test2(int n, int REP){
 		prepare_swifft(N, h, 4, g, 4, depth);
 
 		create_signal(vec_in, N, SIGNAL);
-		for (i=0; i<N; i++) vec_ans[i] = 0.0;
+		for (i=0; i<N; i++) vec_approx[i] = 0.0;
 		clock_gettime(CLOCK_REALTIME, &ts0); c0 = clock();
 
-		swifft_gen1(vec_in, vec_ans);
+		swifft_gen1(vec_in, vec_approx);
 		for (i=1; i<REP; i++)
 			swifft_gen1(vec_in, vec_tmp);
 
 		clock_gettime(CLOCK_REALTIME, &ts1); c1 = clock();
 		print_times(ts0, ts1, c0, c1);
 		free_swifft();
-		finalize_test(vec_ans, vec_tmp, vec_in, N, "db2");
+		finalize_test(vec_ans, vec_approx, vec_tmp, vec_in, N, "db2");
 
 		
 		/*******************************
@@ -540,17 +542,17 @@ void swifft_test2(int n, int REP){
 		prepare_swifft(N, h, 8, g, 8, depth);
 
 		create_signal(vec_in, N, SIGNAL);
-		for (i=0; i<N; i++) vec_ans[i] = 0.0;
+		for (i=0; i<N; i++) vec_approx[i] = 0.0;
 		clock_gettime(CLOCK_REALTIME, &ts0); c0 = clock();
 
-		swifft_gen1(vec_in, vec_ans);
+		swifft_gen1(vec_in, vec_approx);
 		for (i=1; i<REP; i++)
 			swifft_gen1(vec_in, vec_tmp);
 
 		clock_gettime(CLOCK_REALTIME, &ts1); c1 = clock();
 		print_times(ts0, ts1, c0, c1);
 		free_swifft();
-		finalize_test(vec_ans, vec_tmp, vec_in, N, "db4");
+		finalize_test(vec_ans, vec_approx, vec_tmp, vec_in, N, "db4");
 
 
 		/*******************************
@@ -564,17 +566,17 @@ void swifft_test2(int n, int REP){
 		prepare_swifft(N, h, 12, g, 12, depth);
 
 		create_signal(vec_in, N, SIGNAL);
-		for (i=0; i<N; i++) vec_ans[i] = 0.0;
+		for (i=0; i<N; i++) vec_approx[i] = 0.0;
 		clock_gettime(CLOCK_REALTIME, &ts0); c0 = clock();
 
-		swifft_gen1(vec_in, vec_ans);
+		swifft_gen1(vec_in, vec_approx);
 		for (i=1; i<REP; i++)
 			swifft_gen1(vec_in, vec_tmp);
 
 		clock_gettime(CLOCK_REALTIME, &ts1); c1 = clock();
 		print_times(ts0, ts1, c0, c1);
 		free_swifft();
-		finalize_test(vec_ans, vec_tmp, vec_in, N, "db6");
+		finalize_test(vec_ans, vec_approx, vec_tmp, vec_in, N, "db6");
 
 
 		/*******************************
@@ -588,17 +590,17 @@ void swifft_test2(int n, int REP){
 		prepare_swifft(N, h, 20, g, 20, depth);
 
 		create_signal(vec_in, N, SIGNAL);
-		for (i=0; i<N; i++) vec_ans[i] = 0.0;
+		for (i=0; i<N; i++) vec_approx[i] = 0.0;
 		clock_gettime(CLOCK_REALTIME, &ts0); c0 = clock();
 
-		swifft_gen1(vec_in, vec_ans);
+		swifft_gen1(vec_in, vec_approx);
 		for (i=1; i<REP; i++)
 			swifft_gen1(vec_in, vec_tmp);
 
 		clock_gettime(CLOCK_REALTIME, &ts1); c1 = clock();
 		print_times(ts0, ts1, c0, c1);
 		free_swifft();
-		finalize_test(vec_ans, vec_tmp, vec_in, N, "db10");
+		finalize_test(vec_ans, vec_approx, vec_tmp, vec_in, N, "db10");
 
 		/*******************************/
 	}
@@ -608,27 +610,28 @@ void swifft_test2(int n, int REP){
 	free(vec_in);
 	free(vec_tmp);
 	free(vec_ans);
+	free(vec_approx);
 }
 
 int main(int argc, char **argv){
 
-	/*
 	swifft_test1(8, 10000);
 	swifft_test1(10, 1000);
 	swifft_test1(12, 500);
 	swifft_test1(16, 50);
 	swifft_test1(18, 10);
 	swifft_test1(20, 5);
+	swifft_test1(22, 1);
 	swifft_test1(23, 1);
-	*/
-	//swifft_test1(25, 1);
+	swifft_test1(24, 1);
 
 	//swifft_test2(8, 10000);
 	//swifft_test2(16, 50);
 	//swifft_test2(22, 1);
 
-	//swifft_test1(10, 1);
-	swifft_test1(22, 1);
+	//swifft_test1(8, 100000);
+	//swifft_test1(22, 1);
+	//swifft_test1(20, 1);
 
 	return 0;
 }
